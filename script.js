@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // NOTE: Replace this with your deployed backend URL
-            const response = await fetch('https://taxwise-api-unique.onrender.com//upload', {
+            const response = await fetch('https://taxwise-api-unique.onrender.com/upload', {
                 method: 'POST',
                 body: formData,
             });
@@ -350,7 +350,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 1. Temporarily disable chart animation for clean capture
         if (spendingChart) {
             spendingChart.options.animation.duration = 0;
             spendingChart.update();
@@ -363,24 +362,20 @@ document.addEventListener('DOMContentLoaded', () => {
             format: 'a4'
         });
 
-        // 2. Create a temporary, off-screen container for the report's HTML
         const reportContainer = document.createElement('div');
         reportContainer.style.position = 'absolute';
         reportContainer.style.left = '-9999px';
-        reportContainer.style.width = '210mm'; // A4 width
+        reportContainer.style.width = '210mm';
         reportContainer.innerHTML = generateReportHTML(analysisData);
         document.body.appendChild(reportContainer);
         
-        // Give the browser a moment to render the content and images
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 3. FIX: Use html2canvas to render the container to an image, then add to PDF
         const canvas = await html2canvas(reportContainer, {
-            scale: 2, // Use a higher scale for better PDF quality
+            scale: 2,
             useCORS: true
         });
 
-        // 4. Clean up the temporary container right after capture
         document.body.removeChild(reportContainer);
         
         const imgData = canvas.toDataURL('image/png');
@@ -397,11 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let heightLeft = canvasHeight;
         let position = 0;
 
-        // Add the first page
         doc.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
         heightLeft -= pdfHeight;
 
-        // Add more pages if the content is too long
         while (heightLeft > 0) {
             position = heightLeft - canvasHeight;
             doc.addPage();
@@ -411,8 +404,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         doc.save(`TaxWise_Financial_Summary_${new Date().toLocaleDateString('en-IN')}.pdf`);
 
-
-        // 5. Re-enable chart animation
         if (spendingChart) {
             spendingChart.options.animation.duration = 1000;
             spendingChart.update();
