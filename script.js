@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch('https://rahul9969.pythonanywhere.com/upload', {
+            const response = await fetch('https://Rahul9969.pythonanywhere.com/upload', {
                 method: 'POST',
                 body: formData,
             });
@@ -339,4 +339,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 });
+
 
