@@ -374,25 +374,49 @@ document.addEventListener('DOMContentLoaded', () => {
         // Give the browser a moment to render the content and images
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 3. Use jsPDF's html method to render the container
-        doc.html(reportContainer, {
-            callback: function (doc) {
-                doc.save(`TaxWise_Financial_Summary_${new Date().toLocaleDateString('en-IN')}.pdf`);
-                
-                // 5. Clean up the temporary container
-                document.body.removeChild(reportContainer);
-
-                // 6. Re-enable chart animation
-                if (spendingChart) {
-                    spendingChart.options.animation.duration = 1000;
-                    spendingChart.update();
-                }
-            },
-            x: 0,
-            y: 0,
-            width: 210, // A4 width
-            windowWidth: 210 * 3.78 // approx conversion from mm to pixels
+        // 3. FIX: Use html2canvas to render the container to an image, then add to PDF
+        const canvas = await html2canvas(reportContainer, {
+            scale: 2, // Use a higher scale for better PDF quality
+            useCORS: true
         });
+
+        // 4. Clean up the temporary container right after capture
+        document.body.removeChild(reportContainer);
+        
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = doc.getImageProperties(imgData);
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = doc.internal.pageSize.getHeight();
+        
+        const imgWidth = imgProps.width;
+        const imgHeight = imgProps.height;
+        
+        const ratio = imgWidth / pdfWidth;
+        const canvasHeight = imgHeight / ratio;
+
+        let heightLeft = canvasHeight;
+        let position = 0;
+
+        // Add the first page
+        doc.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
+        heightLeft -= pdfHeight;
+
+        // Add more pages if the content is too long
+        while (heightLeft > 0) {
+            position = heightLeft - canvasHeight;
+            doc.addPage();
+            doc.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
+            heightLeft -= pdfHeight;
+        }
+        
+        doc.save(`TaxWise_Financial_Summary_${new Date().toLocaleDateString('en-IN')}.pdf`);
+
+
+        // 5. Re-enable chart animation
+        if (spendingChart) {
+            spendingChart.options.animation.duration = 1000;
+            spendingChart.update();
+        }
     }
     
     function generateReportHTML(data) {
