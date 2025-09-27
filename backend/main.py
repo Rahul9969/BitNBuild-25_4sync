@@ -7,11 +7,12 @@ import requests # Using requests for more direct API calls
 import json
 import numpy as np
 
-app = Flask(__name__)
+app = Flask(_name_)
 CORS(app)
 
 # --- IMPORTANT: CONFIGURE YOUR GOOGLE AI API KEY HERE ---
 # API key is set for direct REST API call.
+# Get your key from Google AI Studio: https://aistudio.google.com/app/apikey
 GOOGLE_API_KEY = "AIzaSyBkv1dXN3-JALMDtEPiyEp4-tEkQx6-ogQ"
 
 # ==============================================================================
@@ -27,7 +28,7 @@ def standardize_column_names(df):
         'debit': ['debit', 'withdrawal', 'dr.', 'withdrawals', 'withdrawal amt.'],
         'credit': ['credit', 'deposit', 'cr.', 'deposits', 'deposit amt.']
     }
-    
+
     new_columns = {}
     for col in df.columns:
         col_lower = col.strip().lower()
@@ -58,7 +59,7 @@ def categorize_transactions(df):
     # Fill potential NaN values in description column before processing
     df['description'] = df['description'].fillna('N/A')
     df['description_lower'] = df['description'].str.lower()
-    
+
     def get_category(description):
         # Ensure description is a string to avoid errors
         if not isinstance(description, str):
@@ -87,7 +88,7 @@ def get_fallback_recommendations(financial_summary):
         tax_recs.append("You have not fully utilized your Section 80C limit. Consider investing more in PPF, ELSS, or LIC to save tax.")
     else:
         tax_recs.append("You have successfully utilized your Section 80C limit. Explore other tax-saving options like NPS under Section 80CCD(1B).")
-    
+
     tax_recs.append("Review your expenses to identify any other potential deductions, such as health insurance premiums (Section 80D) or donations (Section 80G).")
 
     # CIBIL Recommendations
@@ -95,7 +96,7 @@ def get_fallback_recommendations(financial_summary):
         cibil_recs.append(f"Your credit utilization is at {financial_summary['cibil']['utilization']:.0%}, which is high. Try to keep it below 30% to improve your CIBIL score.")
     else:
         cibil_recs.append(f"Your credit utilization is healthy at {financial_summary['cibil']['utilization']:.0%}. Continue to maintain this to keep your score high.")
-        
+
     cibil_recs.append("Always pay your credit card bills and loan EMIs on time. Timely payments have the biggest positive impact on your score.")
 
     return {
@@ -107,14 +108,12 @@ def get_fallback_recommendations(financial_summary):
 # DYNAMIC AI RECOMMENDATION ENGINE (USING GEMINI VIA REST API)
 # ==============================================================================
 def get_dynamic_ai_recommendations(financial_summary):
-    if not GOOGLE_API_KEY or GOOGLE_API_KEY == "YOUR_API_KEY_HERE":
-        return {
-            "tax_recommendations": ["API Key not configured. Add your Google AI API key to app.py."],
-            "cibil_recommendations": ["API Key not configured. Please add your key to see CIBIL advice."]
-        }
-    
+    if not GOOGLE_API_KEY or GOOGLE_API_KEY == "REPLACE_WITH_YOUR_GOOGLE_AI_API_KEY":
+        print("Warning: GOOGLE_API_KEY not configured. Using fallback recommendations.")
+        return get_fallback_recommendations(financial_summary)
+
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GOOGLE_API_KEY}"
-    
+
     prompt = f"""
     You are an expert Indian financial advisor for FY 2024-25.
     Analyze the following financial summary and provide two separate lists of concise, actionable recommendations.
@@ -132,18 +131,18 @@ def get_dynamic_ai_recommendations(financial_summary):
     Return the response as a valid JSON object with two keys: "tax_recommendations" and "cibil_recommendations". Each key must hold a list of strings.
     Example: {{"tax_recommendations": ["Invest in ELSS funds."], "cibil_recommendations": ["Keep credit utilization below 30%."]}}
     """
-    
+
     payload = {
         "contents": [{"parts": [{"text": prompt}]}]
     }
-    
+
     try:
         response = requests.post(api_url, json=payload, timeout=10) # Added a timeout
         response.raise_for_status()
         result = response.json()
-        
+
         text_content = result.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '{}')
-        cleaned_response = text_content.strip().replace("```json", "").replace("```", "")
+        cleaned_response = text_content.strip().replace("json", "").replace("", "")
         return json.loads(cleaned_response)
 
     except Exception as e:
@@ -164,10 +163,23 @@ CESS_RATE = 0.04
 
 def calculate_tax(taxable_income, slabs):
     tax = 0
-    for slab in sorted(slabs, key=lambda x: x['from']):
-        if taxable_income > slab['from']:
-            taxable_in_slab = min(slab['to'] - slab['from'], taxable_income - slab['from'])
-            tax += taxable_in_slab * slab['rate']
+    remaining_income = taxable_income
+    sorted_slabs = sorted(slabs, key=lambda x: x['from'])
+
+    for i in range(len(sorted_slabs)):
+        slab = sorted_slabs[i]
+
+        if taxable_income <= slab['from']:
+            break
+
+        taxable_in_slab = 0
+        if slab['to'] == float('inf'):
+            taxable_in_slab = taxable_income - slab['from']
+        else:
+            taxable_in_slab = min(taxable_income, slab['to']) - slab['from']
+
+        tax += taxable_in_slab * slab['rate']
+
     return tax
 
 def calculate_final_tax(gross_income, slabs, deductions=None):
@@ -178,14 +190,18 @@ def calculate_final_tax(gross_income, slabs, deductions=None):
         taxable_income -= STANDARD_DEDUCTION
         for section, amount in deductions.items():
             taxable_income -= amount
+
     taxable_income = max(0, taxable_income)
+
     rebate = 0
     if slabs == OLD_REGIME_SLABS and taxable_income <= 500000: rebate = 12500
     if slabs == NEW_REGIME_SLABS and taxable_income <= 700000: rebate = 25000
+
     base_tax = calculate_tax(taxable_income, slabs)
     tax_after_rebate = max(0, base_tax - rebate)
     cess = tax_after_rebate * CESS_RATE
     total_tax = tax_after_rebate + cess
+
     return total_tax, taxable_income
 
 # ==============================================================================
@@ -196,37 +212,35 @@ def upload_file():
     if 'statements' not in request.files:
         return jsonify({"error": "No file part"}), 400
     files = request.files.getlist('statements')
-    
+
     try:
         all_dfs = []
         for file in files:
             content = file.read().decode('utf-8')
             df = pd.read_csv(io.StringIO(content))
-            
-            # Intelligently find and rename columns to a standard format.
+
             df = standardize_column_names(df)
-            
+
             if 'description' not in df.columns:
-                 return jsonify({"error": f"CSV '{file.filename}' must have a transaction description column (e.g., 'Description', 'Narration')."}), 400
-            
+                return jsonify({"error": f"CSV '{file.filename}' must have a transaction description column (e.g., 'Description', 'Narration')."}), 400
+
             if 'credit' not in df.columns: df['credit'] = 0
             if 'debit' not in df.columns: df['debit'] = 0
 
-            # Clean currency symbols and commas before converting to numeric
             for col in ['credit', 'debit']:
                 if col in df.columns:
                     df[col] = df[col].astype(str).str.replace(r'[^\d.]', '', regex=True)
                     df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-            
+
             all_dfs.append(df)
-        
+
         if not all_dfs: return jsonify({"error": "No valid CSV files processed"}), 400
-            
+
         master_df = pd.concat(all_dfs, ignore_index=True)
         categorized_df = categorize_transactions(master_df)
 
         total_income = categorized_df[categorized_df['category'] == 'Income']['credit'].sum() * 12
-        
+
         deductions = {
             '80C': min(categorized_df[categorized_df['category'] == 'Investments (80C)']['debit'].sum() * 12, LIMIT_80C),
             '80D': min(categorized_df[categorized_df['category'] == 'Medical (80D)']['debit'].sum() * 12, LIMIT_80D),
@@ -237,25 +251,25 @@ def upload_file():
         old_tax_payable, old_taxable_income = calculate_final_tax(total_income, OLD_REGIME_SLABS, deductions)
         new_tax_payable, new_taxable_income = calculate_final_tax(total_income, NEW_REGIME_SLABS)
         recommended_regime = 'old' if old_tax_payable < new_tax_payable else 'new'
-        
+
         credit_payments = categorized_df[categorized_df['category'] == 'EMI & Loans']['debit'].sum()
         total_debits = categorized_df['debit'].sum()
         credit_utilization = credit_payments / total_debits if total_debits > 0 else 0
-        cibil_score = 750 + (25 if credit_utilization < 0.1 else 0) - (50 if credit_utilization > 0.4 else 0)
+        cibil_score = int(750 + (25 if credit_utilization < 0.1 else 0) - (50 if credit_utilization > 0.4 else 0))
 
         financial_summary_for_ai = {
             "income": total_income,
             "deductions": deductions,
             "cibil": {"score": cibil_score, "utilization": credit_utilization}
         }
-        
+
         ai_recommendations = get_dynamic_ai_recommendations(financial_summary_for_ai)
 
         spending_breakdown = categorized_df[categorized_df['debit'] > 0].groupby('category')['debit'].sum().to_dict()
         spending_breakdown_serializable = {k: int(v) for k, v in spending_breakdown.items()}
-        
+
         recent_transactions = categorized_df.tail(10).to_dict('records')
-        
+
         cleaned_transactions = []
         for record in recent_transactions:
             cleaned_record = {}
@@ -291,9 +305,8 @@ def upload_file():
         print(f"An error occurred: {e}")
         return jsonify({"error": f"An unexpected error occurred while processing the file: {str(e)}"}), 500
 
-if __name__ == '__main__':
+if _name_ == '_main_':
     app.run(debug=True)
 
 # Required libraries:
 # pip install Flask pandas Flask-Cors requests numpy
-
