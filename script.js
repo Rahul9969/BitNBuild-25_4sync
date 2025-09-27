@@ -1,16 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
     // =============================================================================
-    // FIREBASE CONFIGURATION
+    // FIREBASE AND API CONFIGURATION
     // =============================================================================
     const firebaseConfig = {
         apiKey: "AIzaSyB0GDEB2gMdM7ILtUdVmOOIIdn1oCiY68I",
         authDomain: "taxwiseapp-fd1ee.firebaseapp.com",
         projectId: "taxwiseapp-fd1ee",
-        storageBucket: "taxwiseapp-fd1ee.appspot.com", // Corrected storage bucket URL
+        storageBucket: "taxwiseapp-fd1ee.appspot.com",
         messagingSenderId: "522348901127",
         appId: "1:522348901127:web:13a751f669aa38714ccba2",
         measurementId: "G-HC42XP2H11"
     };
+
+    // IMPORTANT: Add the SAME Google AI API key here for the frontend fallback.
+    const GEMINI_API_KEY = "AIzaSyBkv1dXN3-JALMDtEPiyEp4-tEkQx6-ogQ";
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
@@ -163,12 +166,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // =============================================================================
-    // AI CHAT (WITH FALLBACK)
+    // AI CHAT (WITH DUAL API FALLBACK)
     // =============================================================================
     const toggleChat = () => {
         aiChatModal.classList.toggle('hidden');
         if (!aiChatModal.classList.contains('hidden') && chatMessages.children.length === 0) {
-            addMessageToChat("Hello! I'm the TaxWise AI Assistant. How can I help with your financial questions?", 'ai');
+            addMessageToChat("Hello! I'm the TaxWise AI Assistant. How can I help?", 'ai');
         }
     };
     aiChatButton.addEventListener('click', toggleChat);
@@ -198,8 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
         try {
+            // --- Primary Method: Call Backend Server ---
             const idToken = await currentUser.getIdToken();
-            const response = await fetch('https://taxwise-api-unique.onrender.com//chat', {
+            const response = await fetch('https://taxwise-api-unique.onrender.com/chat', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -207,32 +211,68 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({ message: userInput }),
             });
-
-            if (!response.ok) throw new Error('API request failed');
-
+            if (!response.ok) throw new Error('Backend API failed');
             const data = await response.json();
             thinkingElement.remove();
             addMessageToChat(data.reply, 'ai');
-        } catch (error) {
-            console.error("Chat API error:", error);
-            thinkingElement.remove();
-            // Use fallback if API fails
-            const fallbackResponse = getHardcodedResponse(userInput);
-            addMessageToChat(fallbackResponse, 'ai');
+        } catch (backendError) {
+            console.warn("Backend chat failed:", backendError.message, "Trying frontend fallback.");
+            try {
+                // --- Frontend Fallback: Call Gemini API Directly ---
+                const directResponse = await getGeminiResponseDirectly(userInput);
+                thinkingElement.remove();
+                addMessageToChat(directResponse, 'ai');
+            } catch (frontendError) {
+                console.error("Frontend chat fallback also failed:", frontendError.message);
+                // --- Ultimate Fallback: Hardcoded Response ---
+                thinkingElement.remove();
+                const hardcodedResponse = getHardcodedResponse(userInput);
+                addMessageToChat(hardcodedResponse, 'ai');
+            }
         }
     });
+    
+    const getGeminiResponseDirectly = async (prompt) => {
+         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+        
+         if (!GEMINI_API_KEY || GEMINI_API_KEY.includes("AIzaSyANibPszZ6TF0dV1srzLLM0ClhTjQd04W4")) {
+             throw new Error("Frontend API Key not configured.");
+         }
+
+         const payload = {
+             contents: [{
+                 parts: [{
+                     text: `You are a helpful financial assistant for users in India. Keep answers concise. Question: "${prompt}"`
+                 }]
+             }]
+         };
+
+         const response = await fetch(API_URL, {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify(payload),
+         });
+
+         if (!response.ok) {
+             const errorBody = await response.text();
+             throw new Error(`API Error: ${response.statusText} - ${errorBody}`);
+         }
+
+         const data = await response.json();
+         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+         
+         if (!text) {
+             throw new Error("Invalid response format from AI.");
+         }
+         return text;
+    };
 
     const getHardcodedResponse = (prompt) => {
         const p = prompt.toLowerCase();
-        if (p.includes('cibil') || p.includes('score')) {
-            return "To improve your CIBIL score, always pay your bills on time, keep your credit utilization below 30%, and maintain a healthy mix of credit types.";
-        } else if (p.includes('tax') || p.includes('regime')) {
-            return "The Old Tax Regime allows claiming deductions (like 80C). The New Tax Regime has lower slab rates but fewer deductions. Which is better depends on your investments.";
-        } else if (p.includes('80c')) {
-            return "Section 80C allows reducing taxable income by up to ₹1,50,000 via investments in PPF, ELSS, life insurance, etc.";
-        } else {
-            return "Sorry, I'm having trouble connecting to the live AI. I can answer basic questions about CIBIL, tax regimes, and 80C.";
-        }
+        if (p.includes('cibil')) return "To improve CIBIL score: pay bills on time, keep credit utilization below 30%, and have a mix of credit types.";
+        if (p.includes('tax')) return "Old Tax Regime allows deductions (80C). New Regime has lower slab rates but fewer deductions. The better option depends on your investments.";
+        if (p.includes('80c')) return "Section 80C allows reducing taxable income up to ₹1,50,000 via investments in PPF, ELSS, life insurance, etc.";
+        return "Sorry, I'm having trouble connecting to live AI services. I can answer basic questions about CIBIL, tax regimes, and 80C.";
     };
     
     chatPrompts.addEventListener('click', (e) => {
@@ -255,39 +295,29 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Please log in to upload files.");
             return;
         }
-
         const statusDiv = document.getElementById('upload-status');
         const formData = new FormData();
         for (const file of files) {
             formData.append('statements', file);
         }
-
         statusDiv.innerHTML = `<div class="flex items-center text-amber-400">Processing...</div>`;
-
         try {
             const idToken = await currentUser.getIdToken();
-            const response = await fetch('https://taxwise-api-unique.onrender.com//upload', {
+            const response = await fetch('https://taxwise-api-unique.onrender.com/upload', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${idToken}`
-                },
+                headers: { 'Authorization': `Bearer ${idToken}` },
                 body: formData,
             });
-
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to process file');
             }
-
             analysisData = await response.json();
-            
             await db.collection('users').doc(currentUser.uid).update({
                 lastAnalysis: analysisData
             });
-
             statusDiv.innerHTML = `<div class="text-green-400 font-semibold">Analysis complete!</div>`;
             updateAllUI(analysisData);
-
         } catch (error) {
             statusDiv.innerHTML = `<div class="text-red-500 font-semibold">Error: ${error.message}</div>`;
         }
