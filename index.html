@@ -42,30 +42,64 @@
         </section>
     </div>
 
-    <!-- Login Modal -->
-    <div id="login-modal" class="hidden fixed inset-0 z-50 flex justify-center items-center">
-        <div id="login-box" class="w-full max-w-md p-8 space-y-6 rounded-2xl text-white relative">
+    <!-- Login/Signup Modal -->
+    <div id="auth-modal" class="hidden fixed inset-0 z-50 flex justify-center items-center">
+        <div id="auth-box" class="w-full max-w-md p-8 space-y-6 rounded-2xl text-white relative">
             <button id="close-modal-button" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
-            <div class="text-center">
-                <h1 class="text-3xl font-bold">Welcome Back</h1>
-                <p class="text-gray-300 mt-2">Login to access your dashboard.</p>
+            
+            <!-- Login Form -->
+            <div id="login-view">
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold">Welcome Back</h1>
+                    <p class="text-gray-300 mt-2">Login to access your dashboard.</p>
+                </div>
+                <form id="login-form" class="space-y-6">
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium text-gray-300">Email</label>
+                        <input id="login-email" name="email" type="email" required class="login-input mt-1 block w-full px-4 py-3 rounded-lg border-0 focus:outline-none focus:ring-0">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-gray-300">Password</label>
+                        <input id="login-password" name="password" type="password" required class="login-input mt-1 block w-full px-4 py-3 rounded-lg border-0 focus:outline-none focus:ring-0">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg">Sign In</button>
+                    </div>
+                    <p id="login-error" class="text-red-400 text-sm text-center hidden"></p>
+                </form>
+                <p class="text-center text-sm mt-4 text-gray-400">
+                    Don't have an account? <a href="#" id="show-signup-link" class="font-medium text-green-400 hover:underline">Sign Up</a>
+                </p>
             </div>
-            <form id="login-form" class="space-y-6">
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-300">Username</label>
-                    <input id="username" name="username" type="text" required class="login-input mt-1 block w-full px-4 py-3 rounded-lg border-0 focus:outline-none focus:ring-0">
+
+            <!-- Signup Form -->
+            <div id="signup-view" class="hidden">
+                 <div class="text-center">
+                    <h1 class="text-3xl font-bold">Create Account</h1>
+                    <p class="text-gray-300 mt-2">Get started with your financial journey.</p>
                 </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
-                    <input id="password" name="password" type="password" required class="login-input mt-1 block w-full px-4 py-3 rounded-lg border-0 focus:outline-none focus:ring-0">
-                </div>
-                 <div class="flex items-center justify-between">
-                    <a href="#" class="text-sm text-green-400 hover:underline">Forgot password?</a>
-                </div>
-                <div>
-                    <button type="submit" class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg">Sign In</button>
-                </div>
-            </form>
+                <form id="signup-form" class="space-y-6">
+                     <div>
+                        <label for="signup-username" class="block text-sm font-medium text-gray-300">Username</label>
+                        <input id="signup-username" name="username" type="text" required class="login-input mt-1 block w-full px-4 py-3 rounded-lg border-0 focus:outline-none focus:ring-0">
+                    </div>
+                    <div>
+                        <label for="signup-email" class="block text-sm font-medium text-gray-300">Email</label>
+                        <input id="signup-email" name="email" type="email" required class="login-input mt-1 block w-full px-4 py-3 rounded-lg border-0 focus:outline-none focus:ring-0">
+                    </div>
+                    <div>
+                        <label for="signup-password" class="block text-sm font-medium text-gray-300">Password</label>
+                        <input id="signup-password" name="password" type="password" required class="login-input mt-1 block w-full px-4 py-3 rounded-lg border-0 focus:outline-none focus:ring-0">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg">Sign Up</button>
+                    </div>
+                     <p id="signup-error" class="text-red-400 text-sm text-center hidden"></p>
+                </form>
+                 <p class="text-center text-sm mt-4 text-gray-400">
+                    Already have an account? <a href="#" id="show-login-link" class="font-medium text-green-400 hover:underline">Log In</a>
+                </p>
+            </div>
         </div>
     </div>
     
@@ -228,7 +262,7 @@
                             </div>
                              <div class="flex justify-between">
                                 <span class="font-medium text-main-subheader">Member Since:</span>
-                                <span class="font-bold text-main-header">Sep 2025</span>
+                                <span class="font-bold text-main-header" id="profile-member-since">Sep 2025</span>
                             </div>
                         </div>
                     </div>
@@ -274,11 +308,17 @@
         </div>
 
     </div>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
+    <!-- App Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="script.js" defer></script>
+    <script src="script.js"></script>
 </body>
 </html>
 
