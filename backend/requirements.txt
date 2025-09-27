@@ -1,0 +1,6 @@
+Flask
+pandas
+Flask-Cors
+requests
+numpy
+gunicorn
