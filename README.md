@@ -6,7 +6,7 @@
 * **Team Name:** **4sync**
 * **Team Members:**
     * **Reeven Menezes** - Team Leader
-    * Rahul Kevat - Member
+    * Rahul Kewat - Member
     * Hansy Rodrigues - Member
     * Stewin Mathias - Member
       
