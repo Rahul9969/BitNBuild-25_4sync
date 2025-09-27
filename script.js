@@ -1,17 +1,51 @@
 document.addEventListener('DOMContentLoaded', () => {
     // =============================================================================
+    // FIREBASE CONFIGURATION
+    // =============================================================================
+    // Your web app's Firebase configuration is now integrated.
+    const firebaseConfig = {
+        apiKey: "AIzaSyB0GDEB2gMdM7ILtUdVmOOIIdn1oCiY68I",
+        authDomain: "taxwiseapp-fd1ee.firebaseapp.com",
+        projectId: "taxwiseapp-fd1ee",
+        storageBucket: "taxwiseapp-fd1ee.appspot.com",
+        messagingSenderId: "522348901127",
+        appId: "1:522348901127:web:13a751f669aa38714ccba2",
+        measurementId: "G-HC42XP2H11"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // =============================================================================
     // ELEMENT SELECTORS
     // =============================================================================
     const landingPage = document.getElementById('landing-page');
-    const loginModal = document.getElementById('login-modal');
+    const authModal = document.getElementById('auth-modal');
     const appContainer = document.getElementById('app-container');
+    
+    // Auth Views
+    const loginView = document.getElementById('login-view');
+    const signupView = document.getElementById('signup-view');
     const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const loginError = document.getElementById('login-error');
+    const signupError = document.getElementById('signup-error');
+
+    // Auth Triggers
     const logoutButton = document.getElementById('logout-button');
-    const welcomeUsername = document.getElementById('welcome-username');
-    const profileUsername = document.getElementById('profile-username');
     const getStartedButton = document.getElementById('get-started-button');
     const loginNavButton = document.getElementById('login-nav-button');
     const closeModalButton = document.getElementById('close-modal-button');
+    const showSignupLink = document.getElementById('show-signup-link');
+    const showLoginLink = document.getElementById('show-login-link');
+    
+    // User Display
+    const welcomeUsername = document.getElementById('welcome-username');
+    const profileUsername = document.getElementById('profile-username');
+    const profileEmail = document.getElementById('profile-email');
+    const profileMemberSince = document.getElementById('profile-member-since');
 
     // AI Chat Selectors
     const aiChatButton = document.getElementById('ai-chat-button');
@@ -20,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatMessages = document.getElementById('chat-messages');
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
-    const chatPrompts = document.getElementById('chat-prompts');
     
     const pages = {
         dashboard: document.getElementById('page-dashboard'),
@@ -38,17 +71,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let analysisData = null;
     let spendingChart = null;
+    let currentUser = null;
 
     // =============================================================================
-    // AUTH & PAGE VISIBILITY
+    // AUTHENTICATION & PAGE VISIBILITY
     // =============================================================================
-    const showLoginModal = () => loginModal.classList.remove('hidden');
-    const hideLoginModal = () => loginModal.classList.add('hidden');
+    const showAuthModal = () => authModal.classList.remove('hidden');
+    const hideAuthModal = () => authModal.classList.add('hidden');
     
-    const showAppPage = (username) => {
-        welcomeUsername.textContent = username;
-        profileUsername.textContent = username;
-        hideLoginModal();
+    const showAppPage = () => {
+        hideAuthModal();
         landingPage.style.display = 'none';
         appContainer.classList.remove('hidden');
     };
@@ -56,55 +88,104 @@ document.addEventListener('DOMContentLoaded', () => {
     const showLandingPage = () => {
         appContainer.classList.add('hidden');
         landingPage.style.display = 'block';
-        hideLoginModal();
+        hideAuthModal();
         navigate('dashboard');
-    };
-
-    getStartedButton.addEventListener('click', showLoginModal);
-    loginNavButton.addEventListener('click', showLoginModal);
-    closeModalButton.addEventListener('click', hideLoginModal);
-    loginModal.addEventListener('click', (e) => {
-        if(e.target === loginModal) hideLoginModal();
-    });
-
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = e.target.username.value;
-        if (username.trim() && e.target.password.value.trim()) {
-            showAppPage(username);
-        } else {
-            alert('Please enter a username and password.');
-        }
-    });
-
-    logoutButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        showLandingPage();
-    });
-
-    showLandingPage();
-
-    // =============================================================================
-    // AI CHAT ASSISTANT LOGIC (WITH FALLBACK)
-    // =============================================================================
-    const toggleChat = () => {
-        const isHidden = aiChatModal.classList.contains('hidden');
-        if (isHidden) {
-            aiChatModal.classList.remove('hidden');
-            setTimeout(() => {
-                aiChatModal.style.opacity = '1';
-                aiChatModal.style.transform = 'translateY(0)';
-            }, 10);
-            if (chatMessages.children.length === 0) {
-                 addMessageToChat("Hello! I'm the TaxWise AI Assistant. How can I help you with your Indian finance questions?", 'ai');
-            }
-        } else {
-            aiChatModal.style.opacity = '0';
-            aiChatModal.style.transform = 'translateY(20px)';
-            setTimeout(() => aiChatModal.classList.add('hidden'), 300);
-        }
+        resetUI(); // Clear user data on logout
     };
     
+    // Auth state listener
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user;
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                welcomeUsername.textContent = userData.username;
+                profileUsername.textContent = userData.username;
+                profileEmail.textContent = user.email;
+                if (user.metadata.creationTime) {
+                    profileMemberSince.textContent = new Date(user.metadata.creationTime).toLocaleDateString('en-IN', { month: 'long', year: 'numeric'});
+                }
+                // Load last saved data
+                if(userData.lastAnalysis) {
+                    analysisData = userData.lastAnalysis;
+                    updateAllUI(analysisData);
+                }
+            }
+            showAppPage();
+        } else {
+            currentUser = null;
+            showLandingPage();
+        }
+    });
+
+    // Event Listeners for Auth
+    getStartedButton.addEventListener('click', showAuthModal);
+    loginNavButton.addEventListener('click', showAuthModal);
+    closeModalButton.addEventListener('click', hideAuthModal);
+    authModal.addEventListener('click', (e) => {
+        if(e.target === authModal) hideAuthModal();
+    });
+    showSignupLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginView.classList.add('hidden');
+        signupView.classList.remove('hidden');
+    });
+    showLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        signupView.classList.add('hidden');
+        loginView.classList.remove('hidden');
+    });
+
+    // Signup form handler
+    signupForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = e.target.username.value;
+        const email = e.target.email.value;
+        const password = e.target.password.value;
+        signupError.classList.add('hidden');
+
+        auth.createUserWithEmailAndPassword(email, password)
+            .then(userCredential => {
+                // Store username in Firestore
+                return db.collection('users').doc(userCredential.user.uid).set({
+                    username: username,
+                    email: email
+                });
+            })
+            .catch(error => {
+                signupError.textContent = error.message;
+                signupError.classList.remove('hidden');
+            });
+    });
+
+    // Login form handler
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = e.target.email.value;
+        const password = e.target.password.value;
+        loginError.classList.add('hidden');
+
+        auth.signInWithEmailAndPassword(email, password)
+            .catch(error => {
+                loginError.textContent = error.message;
+                loginError.classList.remove('hidden');
+            });
+    });
+
+    // Logout button handler
+    logoutButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        auth.signOut();
+    });
+
+    // =============================================================================
+    // AI CHAT (SECURE)
+    // =============================================================================
+    const toggleChat = () => aiChatModal.classList.toggle('hidden');
+    aiChatButton.addEventListener('click', toggleChat);
+    closeChatButton.addEventListener('click', toggleChat);
+
     const addMessageToChat = (message, sender) => {
         const messageElement = document.createElement('div');
         messageElement.className = `chat-message ${sender === 'user' ? 'user-message' : 'ai-message'}`;
@@ -113,123 +194,70 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     };
 
-    const handleChatMessage = async (e) => {
+    chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const userInput = chatInput.value.trim();
-        if (!userInput) return;
-
+        if (!userInput || !currentUser) return;
+        
         addMessageToChat(userInput, 'user');
         chatInput.value = '';
-        chatPrompts.classList.add('hidden');
 
         const thinkingElement = document.createElement('div');
         thinkingElement.className = 'chat-message ai-message';
-        thinkingElement.innerHTML = '<span class="italic text-gray-400">Thinking...</span>';
+        thinkingElement.innerHTML = '<span>Thinking...</span>';
         chatMessages.appendChild(thinkingElement);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
 
         try {
-            const response = await fetch('https://taxwise-api-unique.onrender.com/chat', {
+            const idToken = await currentUser.getIdToken();
+            const response = await fetch('http://127.0.0.1:5000/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                },
                 body: JSON.stringify({ message: userInput }),
             });
 
-            if (!response.ok) {
-                // If the server responds with an error (e.g., 500), throw to trigger the catch block
-                throw new Error('Server responded with an error.');
-            }
+            if (!response.ok) throw new Error('Failed to get response.');
 
             const data = await response.json();
             thinkingElement.remove();
             addMessageToChat(data.reply, 'ai');
-
         } catch (error) {
-            // CATCH BLOCK: This runs if the fetch() fails (network error, CORS, server down)
-            console.error('Live Chat API Error:', error); // Log the actual error for debugging
             thinkingElement.remove();
-            
-            // Get hardcoded response as a fallback
-            const fallbackResponse = getCuratedAiResponse(userInput);
-            addMessageToChat(fallbackResponse, 'ai'); // Display the fallback response
-        }
-    };
-
-    // This function provides hard-coded answers if the live API call fails.
-    const getCuratedAiResponse = (prompt) => {
-        const p = prompt.toLowerCase();
-        if (p.includes('cibil') || p.includes('score')) {
-            return "To improve your CIBIL score, always pay your bills on time, keep your credit utilization below 30%, and maintain a healthy mix of credit types (like credit cards and loans). Avoid applying for too much credit at once.";
-        } else if (p.includes('tax') || p.includes('regime')) {
-            return "The Old Tax Regime allows claiming deductions (like HRA, 80C). The New Tax Regime has lower slab rates but fewer deductions. The better option depends on your income and investments.";
-        } else if (p.includes('80c')) {
-            return "Section 80C allows reducing taxable income by up to ₹1,50,000 via investments in PPF, ELSS mutual funds, life insurance, etc.";
-        } else if (p.includes('hello') || p.includes('hi')) {
-            return "Hello there! How can I assist you with your tax and finance questions?";
-        } else {
-            return "I can help with questions about Indian tax regimes, CIBIL scores, and investments like 80C. Please try asking about one of those topics.";
-        }
-    };
-
-    aiChatButton.addEventListener('click', toggleChat);
-    closeChatButton.addEventListener('click', toggleChat);
-    chatForm.addEventListener('submit', handleChatMessage);
-    chatPrompts.addEventListener('click', (e) => {
-        if(e.target.tagName === 'BUTTON') {
-            chatInput.value = e.target.textContent;
-            const mockEvent = { preventDefault: () => {}, target: chatForm };
-            handleChatMessage(mockEvent);
+            addMessageToChat('Sorry, I am having trouble connecting. Please try again.', 'ai');
         }
     });
 
     // =============================================================================
-    // NAVIGATION HANDLING
-    // =============================================================================
-    function navigate(page) {
-        Object.values(pages).forEach(p => {
-            if (p) p.classList.add('hidden');
-        });
-        Object.values(navLinks).forEach(l => {
-            if(l) l.classList.remove('active');
-        });
-        if (pages[page]) pages[page].classList.remove('hidden');
-        if (navLinks[page]) navLinks[page].classList.add('active');
-    }
-    Object.keys(navLinks).forEach(key => {
-        if (navLinks[key]) {
-            navLinks[key].addEventListener('click', (e) => {
-                e.preventDefault();
-                navigate(key);
-            });
-        }
-    });
-
-    // =============================================================================
-    // FILE UPLOAD & API
+    // FILE UPLOAD (SECURE)
     // =============================================================================
     document.getElementById('upload-button').addEventListener('click', () => document.getElementById('file-upload').click());
-    document.getElementById('file-upload').addEventListener('change', (event) => {
-        if (event.target.files.length > 0) handleFileUpload(event.target.files);
+    document.getElementById('file-upload').addEventListener('change', (e) => {
+        if (e.target.files.length > 0) handleFileUpload(e.target.files);
     });
 
     async function handleFileUpload(files) {
+        if (!currentUser) {
+            alert("Please log in to upload files.");
+            return;
+        }
+
         const statusDiv = document.getElementById('upload-status');
-        const cibilLoader = document.getElementById('cibil-loader');
-        const cibilDisplay = document.getElementById('cibil-score-display');
-        
-        statusDiv.innerHTML = `<div class="flex items-center text-amber-400"><div class="loader w-5 h-5 mr-2 !border-t-amber-400"></div> Processing ${files.length} file(s)...</div>`;
-        cibilLoader.classList.remove('hidden');
-        cibilDisplay.classList.add('hidden');
-        document.getElementById('cibil-status').textContent = 'Analyzing...';
-        
         const formData = new FormData();
         for (const file of files) {
             formData.append('statements', file);
         }
 
+        statusDiv.innerHTML = `<div class="flex items-center text-amber-400">Processing...</div>`;
+
         try {
-            const response = await fetch('https://taxwise-api-unique.onrender.com//upload', {
+            const idToken = await currentUser.getIdToken();
+            const response = await fetch('http://127.0.0.1:5000/upload', {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${idToken}`
+                },
                 body: formData,
             });
 
@@ -237,31 +265,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to process file');
             }
-            
+
             analysisData = await response.json();
             
-            statusDiv.innerHTML = `<div class="text-green-400 font-semibold">Analysis complete!</div>`;
-            
-            updateDashboard(analysisData.dashboard_data);
-            updateTaxOptimizer(analysisData.tax_analysis);
-            updateCibilAdvisor(analysisData.cibil_analysis);
+            // Save the latest analysis to Firestore
+            await db.collection('users').doc(currentUser.uid).update({
+                lastAnalysis: analysisData
+            });
 
-            document.getElementById('download-pdf-button').disabled = false;
-            document.getElementById('pdf-note').textContent = "Your financial summary is ready for download.";
+            statusDiv.innerHTML = `<div class="text-green-400 font-semibold">Analysis complete!</div>`;
+            updateAllUI(analysisData);
+
         } catch (error) {
-            statusDiv.innerHTML = `<div class="text-red-500 font-semibold">Error: Failed to fetch. Please ensure the backend server is running and accessible.</div>`;
-        } finally {
-            cibilLoader.classList.add('hidden');
-            cibilDisplay.classList.remove('hidden');
+            statusDiv.innerHTML = `<div class="text-red-500 font-semibold">Error: ${error.message}</div>`;
         }
     }
+    
+    // =============================================================================
+    // UI UPDATE & UTILITY FUNCTIONS
+    // =============================================================================
+    function updateAllUI(data) {
+        updateDashboard(data.dashboard_data);
+        updateTaxOptimizer(data.tax_analysis);
+        updateCibilAdvisor(data.cibil_analysis);
+        document.getElementById('download-pdf-button').disabled = false;
+        document.getElementById('pdf-note').textContent = "Your financial summary is ready for download.";
+    }
 
-    // =============================================================================
-    // UI UPDATE FUNCTIONS
-    // =============================================================================
+    function resetUI() {
+        document.getElementById('tax-liability').textContent = '0';
+        document.getElementById('cibil-score').textContent = '0';
+        document.getElementById('investments-80c').textContent = '0';
+        document.getElementById('recent-transactions').innerHTML = '<p class="text-main-subheader text-center pt-10">Upload documents to see transactions.</p>';
+        if (spendingChart) spendingChart.destroy();
+        document.getElementById('download-pdf-button').disabled = true;
+        analysisData = null;
+    }
+
     function formatCurrency(amount) {
         return new Intl.NumberFormat('en-IN').format(Math.round(amount));
     }
+    
+    function navigate(page) {
+        Object.values(pages).forEach(p => p.classList.add('hidden'));
+        Object.values(navLinks).forEach(l => l.classList.remove('active'));
+        pages[page].classList.remove('hidden');
+        navLinks[page].classList.add('active');
+    }
+
+    Object.keys(navLinks).forEach(key => {
+        navLinks[key].addEventListener('click', (e) => {
+            e.preventDefault();
+            navigate(key);
+        });
+    });
 
     function updateDashboard(data) {
         const taxRegime = analysisData.tax_analysis.recommended_regime.toUpperCase();
@@ -270,16 +327,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('cibil-score').textContent = analysisData.cibil_analysis.score;
         document.getElementById('cibil-status').textContent = 'Analysis complete';
         document.getElementById('investments-80c').textContent = formatCurrency(data.investments_80c);
-        
         const transactionsContainer = document.getElementById('recent-transactions');
         transactionsContainer.innerHTML = '';
         data.transactions.forEach(tx => {
             const amount = tx.credit > 0 ? `+ ₹ ${formatCurrency(tx.credit)}` : `- ₹ ${formatCurrency(tx.debit)}`;
             const amountColor = tx.credit > 0 ? 'text-green-400' : 'text-red-400';
-            const date = tx.date || tx['Transaction Date'] || 'N/A';
+            const date = tx.date || 'N/A';
             transactionsContainer.innerHTML += `<div class="flex justify-between items-center py-1.5 border-b border-gray-700/50"><div><p class="font-medium text-main-header">${tx.description || 'N/A'}</p><p class="text-sm text-main-subheader">${date}</p></div><p class="font-semibold ${amountColor}">${amount}</p></div>`;
         });
-        
         renderSpendingChart(data.spending_breakdown);
         renderInvestmentOpportunities(data.investments_80c);
     }
@@ -288,11 +343,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('investment-opportunities');
         const remaining80c = 150000 - investments80c;
         let content = `<h3 class="text-lg font-semibold text-main-header mb-4">Investment Opportunities</h3>`;
-
         if (remaining80c > 0) {
             content += `<div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg"><p class="font-semibold text-amber-300">Maximize Your 80C Savings!</p><p class="text-amber-400 mt-1">You can still invest <span class="font-bold">₹ ${formatCurrency(remaining80c)}</span> in options like PPF, ELSS, or NPS to save more tax.</p></div>`;
         } else {
-             content += `<div class="p-4 bg-green-500/10 border border-green-500/20 rounded-lg"><p class="font-semibold text-green-300">Congratulations!</p><p class="text-green-400 mt-1">You have maximized your tax savings under Section 80C.</p></div>`;
+            content += `<div class="p-4 bg-green-500/10 border border-green-500/20 rounded-lg"><p class="font-semibold text-green-300">Congratulations!</p><p class="text-green-400 mt-1">You have maximized your tax savings under Section 80C.</p></div>`;
         }
         container.innerHTML = content;
     }
@@ -303,14 +357,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const recommendationsHTML = data.recommendations?.length ? data.recommendations.map(rec => `<li>${rec}</li>`).join('') : '<li>No specific tax recommendations.</li>';
         container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="card p-6 border-2 ${isOldRecommended ? 'border-green-400' : 'border-transparent'}"><div class="flex justify-between items-center"><h3 class="text-xl font-bold text-main-header">Old Regime</h3>${isOldRecommended ? '<span class="bg-green-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>' : ''}</div><div class="mt-4 space-y-2"><p class="text-main-subheader">Taxable Income: <span class="font-semibold text-main-header">₹ ${formatCurrency(data.old_regime.taxable_income)}</span></p><p class="text-main-header font-bold text-2xl">Tax Payable: <span class="text-green-400">₹ ${formatCurrency(data.old_regime.tax_payable)}</span></p></div></div><div class="card p-6 border-2 ${!isOldRecommended ? 'border-green-400' : 'border-transparent'}"><div class="flex justify-between items-center"><h3 class="text-xl font-bold text-main-header">New Regime</h3>${!isOldRecommended ? '<span class="bg-green-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>' : ''}</div><div class="mt-4 space-y-2"><p class="text-main-subheader">Taxable Income: <span class="font-semibold text-main-header">₹ ${formatCurrency(data.new_regime.taxable_income)}</span></p><p class="text-main-header font-bold text-2xl">Tax Payable: <span class="text-green-400">₹ ${formatCurrency(data.new_regime.tax_payable)}</span></p></div></div></div><div class="card p-6 mt-6"><h3 class="text-lg font-semibold text-main-header flex items-center"><svg class="h-6 w-6 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>AI Recommendations</h3><ul class="list-disc list-inside mt-3 text-main-subheader space-y-2">${recommendationsHTML}</ul></div>`;
     }
-    
+
     function updateCibilAdvisor(data) {
-          const container = document.getElementById('cibil-advisor-content');
-          const recommendationsHTML = data.recommendations?.length ? data.recommendations.map(rec => `<li>${rec}</li>`).join('') : '<li>No recommendations.</li>';
-          container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="card p-6"><h3 class="text-xl font-bold text-main-header">Your CIBIL Score: <span class="text-green-400">${data.score}</span></h3><p class="text-main-subheader mt-1">Estimate based on your financial data.</p><div class="grid grid-cols-2 gap-4 mt-6 text-center"><div><h4 class="font-semibold text-main-subheader">Payment History</h4><p class="text-2xl font-bold text-green-400 mt-2">100%</p></div><div><h4 class="font-semibold text-main-subheader">Credit Utilization</h4><p class="text-2xl font-bold text-amber-400 mt-2" id="cibil-utilization-display">${(data.factors.credit_utilization * 100).toFixed(0)}%</p></div></div></div><div class="card p-6"><h3 class="text-lg font-semibold text-main-header">What-If Scenario</h3><p class="text-sm text-main-subheader mt-1">See how your CIBIL score could change.</p><div class="mt-4"><label for="utilization-slider" class="block mb-2 text-sm font-medium text-main-header">Adjust Credit Utilization (<span id="slider-value-display"></span>%)</label><input id="utilization-slider" type="range" min="1" max="100" value="${(data.factors.credit_utilization * 100).toFixed(0)}" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"><p class="text-center mt-3 text-lg text-main-subheader">Simulated Score: <span id="simulated-cibil-score" class="font-bold text-green-400"></span></p></div></div></div><div class="card p-6 mt-6"><h3 class="text-lg font-semibold text-main-header flex items-center"><svg class="h-6 w-6 mr-2 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 2a3 3 0 00-3 3v1.432l.21.018a22.99 22.99 0 0115.58 0l.21-.018V5a3 3 0 00-3-3H5zm12 5.432l-.21.018a22.99 22.99 0 01-15.58 0L3 7.432V15a3 3 0 003 3h12a3 3 0 003-3V7.432zM14 12a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd" /></svg>How to Improve Your Score</h3><ul class="list-disc list-inside mt-3 text-main-subheader space-y-2">${recommendationsHTML}</ul></div>`;
+        const container = document.getElementById('cibil-advisor-content');
+        const recommendationsHTML = data.recommendations?.length ? data.recommendations.map(rec => `<li>${rec}</li>`).join('') : '<li>No recommendations.</li>';
+        container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="card p-6"><h3 class="text-xl font-bold text-main-header">Your CIBIL Score: <span class="text-green-400">${data.score}</span></h3><p class="text-main-subheader mt-1">Estimate based on your financial data.</p><div class="grid grid-cols-2 gap-4 mt-6 text-center"><div><h4 class="font-semibold text-main-subheader">Payment History</h4><p class="text-2xl font-bold text-green-400 mt-2">100%</p></div><div><h4 class="font-semibold text-main-subheader">Credit Utilization</h4><p class="text-2xl font-bold text-amber-400 mt-2" id="cibil-utilization-display">${(data.factors.credit_utilization * 100).toFixed(0)}%</p></div></div></div><div class="card p-6"><h3 class="text-lg font-semibold text-main-header">What-If Scenario</h3><p class="text-sm text-main-subheader mt-1">See how your CIBIL score could change.</p><div class="mt-4"><label for="utilization-slider" class="block mb-2 text-sm font-medium text-main-header">Adjust Credit Utilization (<span id="slider-value-display"></span>%)</label><input id="utilization-slider" type="range" min="1" max="100" value="${(data.factors.credit_utilization * 100).toFixed(0)}" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"><p class="text-center mt-3 text-lg text-main-subheader">Simulated Score: <span id="simulated-cibil-score" class="font-bold text-green-400"></span></p></div></div></div><div class="card p-6 mt-6"><h3 class="text-lg font-semibold text-main-header flex items-center"><svg class="h-6 w-6 mr-2 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 2a3 3 0 00-3 3v1.432l.21.018a22.99 22.99 0 0115.58 0l.21-.018V5a3 3 0 00-3-3H5zm12 5.432l-.21.018a22.99 22.99 0 01-15.58 0L3 7.432V15a3 3 0 003 3h12a3 3 0 003-3V7.432zM14 12a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd" /></svg>How to Improve Your Score</h3><ul class="list-disc list-inside mt-3 text-main-subheader space-y-2">${recommendationsHTML}</ul></div>`;
         setupCibilSimulator();
     }
-
+    
     function setupCibilSimulator() {
         const slider = document.getElementById('utilization-slider');
         if (!slider) return;
@@ -333,9 +387,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSimulation();
     }
 
-    // =============================================================================
-    // CHART RENDERING
-    // =============================================================================
     function renderSpendingChart(spendingData) {
         const ctx = document.getElementById('spending-chart').getContext('2d');
         const consolidatedData = Object.entries(spendingData).reduce((acc, [cat, amt]) => {
@@ -344,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, {});
         
         if (spendingChart) spendingChart.destroy();
-        Chart.defaults.color = '#9ca3af'; // Chart text color
+        Chart.defaults.color = '#9ca3af';
         spendingChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -359,8 +410,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+
     // =============================================================================
-    // PDF GENERATION LOGIC - FINAL CORRECTED VERSION
+    // PDF GENERATION LOGIC
     // =============================================================================
     document.getElementById('download-pdf-button').addEventListener('click', downloadPDF);
 
@@ -383,11 +435,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const reportContainer = document.createElement('div');
         reportContainer.style.position = 'absolute';
         reportContainer.style.left = '-9999px';
-        reportContainer.style.width = '210mm'; // A4 width for accurate rendering
+        reportContainer.style.width = '210mm';
         reportContainer.innerHTML = generateReportHTML(analysisData);
         document.body.appendChild(reportContainer);
         
-        await new Promise(resolve => setTimeout(resolve, 500)); // Allow render time
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         try {
             const canvas = await html2canvas(reportContainer, {
@@ -472,7 +524,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h1>TaxWise Financial Summary</h1>
                     <p>Report Generated on: ${today}</p>
                 </div>
-                
                 <div class="section">
                     <h2 class="section-title">Dashboard Overview</h2>
                     <table class="table">
@@ -482,25 +533,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         <tr><th>Total Annual Income</th><td>INR ${formatCurrency(data.dashboard_data.total_income)}</td></tr>
                     </table>
                 </div>
-
                 <div class="section">
                     <h2 class="section-title">Tax Regime Comparison</h2>
                     <table class="table">
                         <thead><tr><th></th><th style="font-weight: bold;">Old Regime</th><th style="font-weight: bold;">New Regime</th></tr></thead>
                         <tbody>
                             <tr><th>Taxable Income</th><td>INR ${formatCurrency(data.tax_analysis.old_regime.taxable_income)}</td><td>INR ${formatCurrency(data.tax_analysis.new_regime.taxable_income)}</td></tr>
-                            <tr class="highlight"><th>Tax Payable</th><td>INR ${formatCurrency(data.tax_analysis.old_regime.tax_payable)}</td><td>INR ${formatCurrency(data.tax_analysis.new_regime.tax_payable)}</td></tr>
+                            <tr class="highlight"><th>Tax Payable</th><td>INR ${formatCurrency(data.tax_analysis.old_regime.tax_payable)}</td><td>INR ${formatCurrency(data.tax_analysis.new_regime.taxable_income)}</td></tr>
                         </tbody>
                     </table>
                 </div>
-                
                 <div class="section">
                     <h2 class="section-title">Spending Breakdown</h2>
                     <div class="chart-container">
                         <img src="${chartImageSrc}" alt="Spending Breakdown Chart"/>
                     </div>
                 </div>
-
                 <div class="section">
                      <h2 class="section-title">AI Recommendations</h2>
                      <div class="recommendation-box">
