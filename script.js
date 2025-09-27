@@ -182,52 +182,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // =============================================================================
     // AI CHAT (SECURE)
     // =============================================================================
-    const toggleChat = () => aiChatModal.classList.toggle('hidden');
-    aiChatButton.addEventListener('click', toggleChat);
-    closeChatButton.addEventListener('click', toggleChat);
+    const getGeminiResponse = async (prompt) => {
+                // This function now directly calls the Gemini API.
+                
+                const API_URL = https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY};
+                
+                if (!GEMINI_API_KEY || GEMINI_API_KEY === "AIzaSyANibPszZ6TF0dV1srzLLM0ClhTjQd04W4") {
+                    throw new Error("API Key not configured. Please get a key from Google AI Studio and add it to the script.");
+                }
 
-    const addMessageToChat = (message, sender) => {
-        const messageElement = document.createElement('div');
-        messageElement.className = `chat-message ${sender === 'user' ? 'user-message' : 'ai-message'}`;
-        messageElement.textContent = message;
-        chatMessages.appendChild(messageElement);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    };
+                const payload = {
+                    contents: [{
+                        parts: [{
+                            // This prompt guides the AI to act as a financial assistant for India.
+                            text: You are a helpful financial assistant for users in India. Keep your answers concise, helpful, and easy to understand. Question: "${prompt}"
+                        }]
+                    }]
+                };
 
-    chatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const userInput = chatInput.value.trim();
-        if (!userInput || !currentUser) return;
-        
-        addMessageToChat(userInput, 'user');
-        chatInput.value = '';
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
 
-        const thinkingElement = document.createElement('div');
-        thinkingElement.className = 'chat-message ai-message';
-        thinkingElement.innerHTML = '<span>Thinking...</span>';
-        chatMessages.appendChild(thinkingElement);
+                if (!response.ok) {
+                    throw new Error(API Error: ${response.statusText});
+                }
 
-        try {
-            const idToken = await currentUser.getIdToken();
-            const response = await fetch('https://taxwise-api-unique.onrender.com/chat', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`
-                },
-                body: JSON.stringify({ message: userInput }),
-            });
-
-            if (!response.ok) throw new Error('Failed to get response.');
-
-            const data = await response.json();
-            thinkingElement.remove();
-            addMessageToChat(data.reply, 'ai');
-        } catch (error) {
-            thinkingElement.remove();
-            addMessageToChat('Sorry, I am having trouble connecting. Please try again.', 'ai');
-        }
-    });
+                const data = await response.json();
+                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!text) {
+                    throw new Error("Could not retrieve a valid response from the AI. The response format might have changed.");
+                }
+                
+                return text;
+            };
 
     // =============================================================================
     // FILE UPLOAD (SECURE)
@@ -564,5 +555,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 });
+
 
 
