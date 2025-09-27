@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showLandingPage();
 
     // =============================================================================
-    // AI CHAT ASSISTANT LOGIC
+    // AI CHAT ASSISTANT LOGIC (NOW WITH LIVE API)
     // =============================================================================
     const toggleChat = () => {
         const isHidden = aiChatModal.classList.contains('hidden');
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 aiChatModal.style.transform = 'translateY(0)';
             }, 10);
             if (chatMessages.children.length === 0) {
-                 addMessageToChat("Hello! I'm the TaxWise AI Assistant. How can I help?", 'ai');
+                 addMessageToChat("Hello! I'm the TaxWise AI Assistant. How can I help you with your Indian finance questions?", 'ai');
             }
         } else {
             aiChatModal.style.opacity = '0';
@@ -128,25 +128,25 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.appendChild(thinkingElement);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        await new Promise(res => setTimeout(res, 1000));
+        try {
+            const response = await fetch('https://taxwise-api-unique.onrender.com//chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userInput }),
+            });
 
-        const aiResponse = getCuratedAiResponse(userInput);
-        thinkingElement.remove();
-        addMessageToChat(aiResponse, 'ai');
-    };
+            if (!response.ok) {
+                throw new Error('Failed to get a response from the AI assistant.');
+            }
 
-    const getCuratedAiResponse = (prompt) => {
-        const p = prompt.toLowerCase();
-        if (p.includes('cibil') || p.includes('score')) {
-            return "To improve your CIBIL score, always pay your bills on time, keep your credit utilization below 30%, and maintain a healthy mix of credit types (like credit cards and loans). Avoid applying for too much credit at once.";
-        } else if (p.includes('tax') || p.includes('regime')) {
-            return "The Old Tax Regime allows claiming deductions (like HRA, 80C). The New Tax Regime has lower slab rates but fewer deductions. The better option depends on your income and investments.";
-        } else if (p.includes('80c')) {
-            return "Section 80C allows reducing taxable income by up to ₹1,50,000 via investments in PPF, ELSS mutual funds, life insurance, etc.";
-        } else if (p.includes('hello') || p.includes('hi')) {
-            return "Hello there! How can I assist you with your tax and finance questions?";
-        } else {
-            return "I can help with questions about Indian tax regimes, CIBIL scores, and investments like 80C. Please try asking about one of those topics.";
+            const data = await response.json();
+            thinkingElement.remove();
+            addMessageToChat(data.reply, 'ai');
+
+        } catch (error) {
+            thinkingElement.remove();
+            addMessageToChat('Sorry, I am having trouble connecting to the AI service right now. Please try again later.', 'ai');
+            console.error('Chat API Error:', error);
         }
     };
 
@@ -207,8 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // NOTE: Replace this with your deployed backend URL
-            const response = await fetch('https://taxwise-api-unique.onrender.com/upload', {
+            const response = await fetch('https://rahul9969.pythonanywhere.com/upload', {
                 method: 'POST',
                 body: formData,
             });
@@ -256,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         data.transactions.forEach(tx => {
             const amount = tx.credit > 0 ? `+ ₹ ${formatCurrency(tx.credit)}` : `- ₹ ${formatCurrency(tx.debit)}`;
             const amountColor = tx.credit > 0 ? 'text-green-400' : 'text-red-400';
-            const date = tx.date || tx['Transaction Date'] || 'N/A'; // Added fallback for different date column names
+            const date = tx.date || tx['Transaction Date'] || 'N/A';
             transactionsContainer.innerHTML += `<div class="flex justify-between items-center py-1.5 border-b border-gray-700/50"><div><p class="font-medium text-main-header">${tx.description || 'N/A'}</p><p class="text-sm text-main-subheader">${date}</p></div><p class="font-semibold ${amountColor}">${amount}</p></div>`;
         });
         
@@ -340,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =============================================================================
-    // PDF GENERATION LOGIC
+    // PDF GENERATION LOGIC - FINAL CORRECTED VERSION
     // =============================================================================
     document.getElementById('download-pdf-button').addEventListener('click', downloadPDF);
 
@@ -350,63 +349,70 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const pdfButton = document.getElementById('download-pdf-button');
+        pdfButton.disabled = true;
+        pdfButton.innerHTML = `<span>Generating PDF...</span>`;
+
         if (spendingChart) {
             spendingChart.options.animation.duration = 0;
             spendingChart.update();
         }
 
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({
-            orientation: 'p',
-            unit: 'mm',
-            format: 'a4'
-        });
-
         const reportContainer = document.createElement('div');
         reportContainer.style.position = 'absolute';
         reportContainer.style.left = '-9999px';
-        reportContainer.style.width = '210mm';
+        reportContainer.style.width = '210mm'; // A4 width for accurate rendering
         reportContainer.innerHTML = generateReportHTML(analysisData);
         document.body.appendChild(reportContainer);
         
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 500)); // Allow render time
 
-        const canvas = await html2canvas(reportContainer, {
-            scale: 2,
-            useCORS: true
-        });
+        try {
+            const canvas = await html2canvas(reportContainer, {
+                scale: 2,
+                useCORS: true,
+                width: reportContainer.scrollWidth,
+                height: reportContainer.scrollHeight
+            });
 
-        document.body.removeChild(reportContainer);
-        
-        const imgData = canvas.toDataURL('image/png');
-        const imgProps = doc.getImageProperties(imgData);
-        const pdfWidth = doc.internal.pageSize.getWidth();
-        const pdfHeight = doc.internal.pageSize.getHeight();
-        
-        const imgWidth = imgProps.width;
-        const imgHeight = imgProps.height;
-        
-        const ratio = imgWidth / pdfWidth;
-        const canvasHeight = imgHeight / ratio;
+            const imgData = canvas.toDataURL('image/png');
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = doc.internal.pageSize.getWidth();
+            const pdfHeight = doc.internal.pageSize.getHeight();
+            
+            const imgProps = doc.getImageProperties(imgData);
+            const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            
+            let heightLeft = imgHeight;
+            let position = 0;
 
-        let heightLeft = canvasHeight;
-        let position = 0;
-
-        doc.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-        heightLeft -= pdfHeight;
-
-        while (heightLeft > 0) {
-            position = heightLeft - canvasHeight;
-            doc.addPage();
-            doc.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
+            doc.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
             heightLeft -= pdfHeight;
-        }
-        
-        doc.save(`TaxWise_Financial_Summary_${new Date().toLocaleDateString('en-IN')}.pdf`);
 
-        if (spendingChart) {
-            spendingChart.options.animation.duration = 1000;
-            spendingChart.update();
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                doc.addPage();
+                doc.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+                heightLeft -= pdfHeight;
+            }
+            
+            doc.save(`TaxWise_Financial_Summary_${new Date().toLocaleDateString('en-IN')}.pdf`);
+
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            alert("Sorry, there was an error creating the PDF. Please try again.");
+        } finally {
+            document.body.removeChild(reportContainer);
+            if (spendingChart) {
+                spendingChart.options.animation.duration = 1000;
+                spendingChart.update();
+            }
+            pdfButton.disabled = false;
+            pdfButton.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                <span>Download PDF Summary</span>
+            `;
         }
     }
     
