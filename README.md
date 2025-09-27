@@ -5,7 +5,7 @@
 
 * **Team Name:** **4sync**
 * **Team Members:**
-    * **Reeven Menezes** - Team Leader
+    * Reeven Menezes - Team Leader
     * Rahul Kewat - Member
     * Hansy Rodrigues - Member
     * Stewin Mathias - Member
@@ -22,7 +22,7 @@ The platform automatically computes tax liabilities, **maximizes legal tax rebat
 
 * **Domain:** Personal Finance Management, Indian Taxation (Income Tax Act), Credit Health & CIBIL Score,Web/App development.
 * **Technologies:** 
-    * **Backend:** 
-    * **Frontend:** 
-    * **APIs:** 
-    * **Deployment:** 
+    * **Backend:** Python
+    * **Frontend:** Html,CSS,JavaScript
+    * **APIs:**Google Gemini
+    * **Deployment:**Github,PythonAnywhere 
