@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const addMessageToChat = (message, sender) => {
         const messageElement = document.createElement('div');
-        messageElement.className = `chat-message ${sender === 'user' ? 'user-message' : 'ai-message'}`;
+        messageElement.className = chat-message ${sender === 'user' ? 'user-message' : 'ai-message'};
         messageElement.textContent = message;
         chatMessages.appendChild(messageElement);
         chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + idToken
+                    'Authorization': Bearer ${idToken}
                 },
                 body: JSON.stringify({ message: userInput }),
             });
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     const getGeminiResponseDirectly = async (prompt) => {
-         const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + GEMINI_API_KEY;
+         const API_URL = https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY};
         
          if (!GEMINI_API_KEY || GEMINI_API_KEY.includes("AIzaSyANibPszZ6TF0dV1srzLLM0ClhTjQd04W4")) {
              throw new Error("Frontend API Key not configured.");
@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
          const payload = {
              contents: [{
                  parts: [{
-                     text: 'You are a helpful financial assistant for users in India. Keep answers concise. Question: "' + prompt + '"'
+                     text: You are a helpful financial assistant for users in India. Keep answers concise. Question: "${prompt}"
                  }]
              }]
          };
@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
          if (!response.ok) {
              const errorBody = await response.text();
-             throw new Error('API Error: ' + response.statusText + ' - ' + errorBody);
+             throw new Error(API Error: ${response.statusText} - ${errorBody});
          }
 
          const data = await response.json();
@@ -300,12 +300,12 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const file of files) {
             formData.append('statements', file);
         }
-        statusDiv.innerHTML = '<div class="flex items-center text-amber-400">Processing...</div>';
+        statusDiv.innerHTML = <div class="flex items-center text-amber-400">Processing...</div>;
         try {
             const idToken = await currentUser.getIdToken();
             const response = await fetch('https://taxwise-api-unique.onrender.com/upload', {
                 method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + idToken },
+                headers: { 'Authorization': Bearer ${idToken} },
                 body: formData,
             });
             if (!response.ok) {
@@ -316,10 +316,10 @@ document.addEventListener('DOMContentLoaded', () => {
             await db.collection('users').doc(currentUser.uid).update({
                 lastAnalysis: analysisData
             });
-            statusDiv.innerHTML = '<div class="text-green-400 font-semibold">Analysis complete!</div>';
+            statusDiv.innerHTML = <div class="text-green-400 font-semibold">Analysis complete!</div>;
             updateAllUI(analysisData);
         } catch (error) {
-            statusDiv.innerHTML = '<div class="text-red-500 font-semibold">Error: ' + error.message + '</div>';
+            statusDiv.innerHTML = <div class="text-red-500 font-semibold">Error: ${error.message}</div>;
         }
     }
     
@@ -367,18 +367,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateDashboard(data) {
         const taxRegime = analysisData.tax_analysis.recommended_regime.toUpperCase();
-        document.getElementById('tax-liability').textContent = formatCurrency(analysisData.tax_analysis[taxRegime.toLowerCase() + '_regime'].tax_payable);
-        document.getElementById('tax-regime-label').textContent = 'Regime: ' + taxRegime;
+        document.getElementById('tax-liability').textContent = formatCurrency(analysisData.tax_analysis[${taxRegime.toLowerCase()}_regime].tax_payable);
+        document.getElementById('tax-regime-label').textContent = Regime: ${taxRegime};
         document.getElementById('cibil-score').textContent = analysisData.cibil_analysis.score;
         document.getElementById('cibil-status').textContent = 'Analysis complete';
         document.getElementById('investments-80c').textContent = formatCurrency(data.investments_80c);
         const transactionsContainer = document.getElementById('recent-transactions');
         transactionsContainer.innerHTML = '';
         data.transactions.forEach(tx => {
-            const amount = tx.credit > 0 ? '+ ₹ ' + formatCurrency(tx.credit) : '- ₹ ' + formatCurrency(tx.debit);
+            const amount = tx.credit > 0 ? + ₹ ${formatCurrency(tx.credit)} : - ₹ ${formatCurrency(tx.debit)};
             const amountColor = tx.credit > 0 ? 'text-green-400' : 'text-red-400';
             const date = tx.date || 'N/A';
-            transactionsContainer.innerHTML += '<div class="flex justify-between items-center py-1.5 border-b border-gray-700/50"><div><p class="font-medium text-main-header">' + (tx.description || 'N/A') + '</p><p class="text-sm text-main-subheader">' + date + '</p></div><p class="font-semibold ' + amountColor + '">' + amount + '</p></div>';
+            transactionsContainer.innerHTML += <div class="flex justify-between items-center py-1.5 border-b border-gray-700/50"><div><p class="font-medium text-main-header">${tx.description || 'N/A'}</p><p class="text-sm text-main-subheader">${date}</p></div><p class="font-semibold ${amountColor}">${amount}</p></div>;
         });
         renderSpendingChart(data.spending_breakdown);
         renderInvestmentOpportunities(data.investments_80c);
@@ -387,11 +387,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderInvestmentOpportunities(investments80c) {
         const container = document.getElementById('investment-opportunities');
         const remaining80c = 150000 - investments80c;
-        let content = '<h3 class="text-lg font-semibold text-main-header mb-4">Investment Opportunities</h3>';
+        let content = <h3 class="text-lg font-semibold text-main-header mb-4">Investment Opportunities</h3>;
         if (remaining80c > 0) {
-            content += '<div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg"><p class="font-semibold text-amber-300">Maximize Your 80C Savings!</p><p class="text-amber-400 mt-1">You can still invest <span class="font-bold">₹ ' + formatCurrency(remaining80c) + '</span> in options like PPF, ELSS, or NPS to save more tax.</p></div>';
+            content += <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg"><p class="font-semibold text-amber-300">Maximize Your 80C Savings!</p><p class="text-amber-400 mt-1">You can still invest <span class="font-bold">₹ ${formatCurrency(remaining80c)}</span> in options like PPF, ELSS, or NPS to save more tax.</p></div>;
         } else {
-            content += '<div class="p-4 bg-green-500/10 border border-green-500/20 rounded-lg"><p class="font-semibold text-green-300">Congratulations!</p><p class="text-green-400 mt-1">You have maximized your tax savings under Section 80C.</p></div>';
+            content += <div class="p-4 bg-green-500/10 border border-green-500/20 rounded-lg"><p class="font-semibold text-green-300">Congratulations!</p><p class="text-green-400 mt-1">You have maximized your tax savings under Section 80C.</p></div>;
         }
         container.innerHTML = content;
     }
@@ -399,14 +399,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateTaxOptimizer(data) {
         const container = document.getElementById('tax-optimizer-content');
         const isOldRecommended = data.recommended_regime === 'old';
-        const recommendationsHTML = data.recommendations?.length ? data.recommendations.map(rec => '<li>' + rec + '</li>').join('') : '<li>No specific tax recommendations.</li>';
-        container.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="card p-6 border-2 ' + (isOldRecommended ? 'border-green-400' : 'border-transparent') + '"><div class="flex justify-between items-center"><h3 class="text-xl font-bold text-main-header">Old Regime</h3>' + (isOldRecommended ? '<span class="bg-green-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>' : '') + '</div><div class="mt-4 space-y-2"><p class="text-main-subheader">Taxable Income: <span class="font-semibold text-main-header">₹ ' + formatCurrency(data.old_regime.taxable_income) + '</span></p><p class="text-main-header font-bold text-2xl">Tax Payable: <span class="text-green-400">₹ ' + formatCurrency(data.old_regime.tax_payable) + '</span></p></div></div><div class="card p-6 border-2 ' + (!isOldRecommended ? 'border-green-400' : 'border-transparent') + '"><div class="flex justify-between items-center"><h3 class="text-xl font-bold text-main-header">New Regime</h3>' + (!isOldRecommended ? '<span class="bg-green-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>' : '') + '</div><div class="mt-4 space-y-2"><p class="text-main-subheader">Taxable Income: <span class="font-semibold text-main-header">₹ ' + formatCurrency(data.new_regime.taxable_income) + '</span></p><p class="text-main-header font-bold text-2xl">Tax Payable: <span class="text-green-400">₹ ' + formatCurrency(data.new_regime.tax_payable) + '</span></p></div></div></div><div class="card p-6 mt-6"><h3 class="text-lg font-semibold text-main-header flex items-center"><svg class="h-6 w-6 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>AI Recommendations</h3><ul class="list-disc list-inside mt-3 text-main-subheader space-y-2">' + recommendationsHTML + '</ul></div>';
+        const recommendationsHTML = data.recommendations?.length ? data.recommendations.map(rec => <li>${rec}</li>).join('') : '<li>No specific tax recommendations.</li>';
+        container.innerHTML = <div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="card p-6 border-2 ${isOldRecommended ? 'border-green-400' : 'border-transparent'}"><div class="flex justify-between items-center"><h3 class="text-xl font-bold text-main-header">Old Regime</h3>${isOldRecommended ? '<span class="bg-green-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>' : ''}</div><div class="mt-4 space-y-2"><p class="text-main-subheader">Taxable Income: <span class="font-semibold text-main-header">₹ ${formatCurrency(data.old_regime.taxable_income)}</span></p><p class="text-main-header font-bold text-2xl">Tax Payable: <span class="text-green-400">₹ ${formatCurrency(data.old_regime.tax_payable)}</span></p></div></div><div class="card p-6 border-2 ${!isOldRecommended ? 'border-green-400' : 'border-transparent'}"><div class="flex justify-between items-center"><h3 class="text-xl font-bold text-main-header">New Regime</h3>${!isOldRecommended ? '<span class="bg-green-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>' : ''}</div><div class="mt-4 space-y-2"><p class="text-main-subheader">Taxable Income: <span class="font-semibold text-main-header">₹ ${formatCurrency(data.new_regime.taxable_income)}</span></p><p class="text-main-header font-bold text-2xl">Tax Payable: <span class="text-green-400">₹ ${formatCurrency(data.new_regime.tax_payable)}</span></p></div></div></div><div class="card p-6 mt-6"><h3 class="text-lg font-semibold text-main-header flex items-center"><svg class="h-6 w-6 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>AI Recommendations</h3><ul class="list-disc list-inside mt-3 text-main-subheader space-y-2">${recommendationsHTML}</ul></div>;
     }
 
     function updateCibilAdvisor(data) {
         const container = document.getElementById('cibil-advisor-content');
-        const recommendationsHTML = data.recommendations?.length ? data.recommendations.map(rec => '<li>' + rec + '</li>').join('') : '<li>No recommendations.</li>';
-        container.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="card p-6"><h3 class="text-xl font-bold text-main-header">Your CIBIL Score: <span class="text-green-400">' + data.score + '</span></h3><p class="text-main-subheader mt-1">Estimate based on your financial data.</p><div class="grid grid-cols-2 gap-4 mt-6 text-center"><div><h4 class="font-semibold text-main-subheader">Payment History</h4><p class="text-2xl font-bold text-green-400 mt-2">100%</p></div><div><h4 class="font-semibold text-main-subheader">Credit Utilization</h4><p class="text-2xl font-bold text-amber-400 mt-2" id="cibil-utilization-display">' + (data.factors.credit_utilization * 100).toFixed(0) + '%</p></div></div></div><div class="card p-6"><h3 class="text-lg font-semibold text-main-header">What-If Scenario</h3><p class="text-sm text-main-subheader mt-1">See how your CIBIL score could change.</p><div class="mt-4"><label for="utilization-slider" class="block mb-2 text-sm font-medium text-main-header">Adjust Credit Utilization (<span id="slider-value-display"></span>%)</label><input id="utilization-slider" type="range" min="1" max="100" value="' + (data.factors.credit_utilization * 100).toFixed(0) + '" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"><p class="text-center mt-3 text-lg text-main-subheader">Simulated Score: <span id="simulated-cibil-score" class="font-bold text-green-400"></span></p></div></div></div><div class="card p-6 mt-6"><h3 class="text-lg font-semibold text-main-header flex items-center"><svg class="h-6 w-6 mr-2 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 2a3 3 0 00-3 3v1.432l.21.018a22.99 22.99 0 0115.58 0l.21-.018V5a3 3 0 00-3-3H5zm12 5.432l-.21.018a22.99 22.99 0 01-15.58 0L3 7.432V15a3 3 0 003 3h12a3 3 0 003-3V7.432zM14 12a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd" /></svg>How to Improve Your Score</h3><ul class="list-disc list-inside mt-3 text-main-subheader space-y-2">' + recommendationsHTML + '</ul></div>';
+        const recommendationsHTML = data.recommendations?.length ? data.recommendations.map(rec => <li>${rec}</li>).join('') : '<li>No recommendations.</li>';
+        container.innerHTML = <div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="card p-6"><h3 class="text-xl font-bold text-main-header">Your CIBIL Score: <span class="text-green-400">${data.score}</span></h3><p class="text-main-subheader mt-1">Estimate based on your financial data.</p><div class="grid grid-cols-2 gap-4 mt-6 text-center"><div><h4 class="font-semibold text-main-subheader">Payment History</h4><p class="text-2xl font-bold text-green-400 mt-2">100%</p></div><div><h4 class="font-semibold text-main-subheader">Credit Utilization</h4><p class="text-2xl font-bold text-amber-400 mt-2" id="cibil-utilization-display">${(data.factors.credit_utilization * 100).toFixed(0)}%</p></div></div></div><div class="card p-6"><h3 class="text-lg font-semibold text-main-header">What-If Scenario</h3><p class="text-sm text-main-subheader mt-1">See how your CIBIL score could change.</p><div class="mt-4"><label for="utilization-slider" class="block mb-2 text-sm font-medium text-main-header">Adjust Credit Utilization (<span id="slider-value-display"></span>%)</label><input id="utilization-slider" type="range" min="1" max="100" value="${(data.factors.credit_utilization * 100).toFixed(0)}" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"><p class="text-center mt-3 text-lg text-main-subheader">Simulated Score: <span id="simulated-cibil-score" class="font-bold text-green-400"></span></p></div></div></div><div class="card p-6 mt-6"><h3 class="text-lg font-semibold text-main-header flex items-center"><svg class="h-6 w-6 mr-2 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 2a3 3 0 00-3 3v1.432l.21.018a22.99 22.99 0 0115.58 0l.21-.018V5a3 3 0 00-3-3H5zm12 5.432l-.21.018a22.99 22.99 0 01-15.58 0L3 7.432V15a3 3 0 003 3h12a3 3 0 003-3V7.432zM14 12a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd" /></svg>How to Improve Your Score</h3><ul class="list-disc list-inside mt-3 text-main-subheader space-y-2">${recommendationsHTML}</ul></div>;
         setupCibilSimulator();
     }
     
@@ -455,6 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+
     // =============================================================================
     // PDF GENERATION LOGIC
     // =============================================================================
@@ -468,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const pdfButton = document.getElementById('download-pdf-button');
         pdfButton.disabled = true;
-        pdfButton.innerHTML = '<span>Generating PDF...</span>';
+        pdfButton.innerHTML = <span>Generating PDF...</span>;
 
         if (spendingChart) {
             spendingChart.options.animation.duration = 0;
@@ -514,7 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 heightLeft -= pdfHeight;
             }
             
-            doc.save('TaxWise_Financial_Summary_' + new Date().toLocaleDateString('en-IN') + '.pdf');
+            doc.save(TaxWise_Financial_Summary_${new Date().toLocaleDateString('en-IN')}.pdf);
 
         } catch (error) {
             console.error("Error generating PDF:", error);
@@ -526,9 +527,85 @@ document.addEventListener('DOMContentLoaded', () => {
                 spendingChart.update();
             }
             pdfButton.disabled = false;
-            pdfButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg><span>Download PDF Summary</span>';
+            pdfButton.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                <span>Download PDF Summary</span>
+            `;
         }
     }
     
     function generateReportHTML(data) {
-        const today = new
+        const today = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+        let chartImageSrc = '';
+        if (spendingChart) {
+             chartImageSrc = spendingChart.toBase64Image();
+        }
+
+        const taxRecsHTML = data.tax_analysis.recommendations.map(rec => <li>${rec}</li>).join('');
+        const cibilRecsHTML = data.cibil_analysis.recommendations.map(rec => <li>${rec}</li>).join('');
+
+        return `
+            <style>
+                body { font-family: 'Inter', sans-serif; color: #1f2937; -webkit-font-smoothing: antialiased; }
+                .report-wrapper { padding: 20px; background-color: white; width: 100%; box-sizing: border-box; }
+                .header { background-color: #1e293b; color: white; padding: 16px; text-align: center; border-radius: 8px; }
+                .header h1 { font-size: 28px; font-weight: bold; margin: 0; }
+                .header p { margin: 4px 0 0 0; font-size: 14px; }
+                .section { clear: both; page-break-inside: avoid; margin-top: 25px; } 
+                .section-title { font-size: 20px; font-weight: bold; color: #1e293b; border-bottom: 2px solid #10b981; padding-bottom: 8px; margin-bottom: 16px;}
+                .table { width: 100%; border-collapse: collapse; }
+                .table th, .table td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-size: 14px; }
+                .table th { background-color: #f1f5f9; font-weight: 600; }
+                .highlight { background-color: #d1fae5; font-weight: bold; }
+                .chart-container { text-align: center; margin-top: 20px; page-break-inside: avoid; }
+                .chart-container img { max-width: 80%; height: auto; margin: 0 auto; display: block; }
+                .recommendation-box { background-color: #f8fafc; padding: 16px; margin-top: 16px; border-left: 4px solid #10b981; border-radius: 4px; }
+                .recommendation-box h3 { font-size: 16px; font-weight: bold; color: #1e293b; margin:0 0 10px 0; }
+                ul { list-style-position: inside; margin: 0; padding-left: 5px; }
+                li { margin-bottom: 8px; font-size: 14px; }
+            </style>
+            <div class="report-wrapper">
+                <div class="header">
+                    <h1>TaxWise Financial Summary</h1>
+                    <p>Report Generated on: ${today}</p>
+                </div>
+                <div class="section">
+                    <h2 class="section-title">Dashboard Overview</h2>
+                    <table class="table">
+                        <tr><th style="width: 50%;">Projected Tax Liability (${data.tax_analysis.recommended_regime.toUpperCase()} Regime)</th><td>INR ${formatCurrency(data.tax_analysis[${data.tax_analysis.recommended_regime.toLowerCase()}_regime].tax_payable)}</td></tr>
+                        <tr><th>Estimated CIBIL Score</th><td>${data.cibil_analysis.score}</td></tr>
+                        <tr><th>Total 80C Investments</th><td>INR ${formatCurrency(data.dashboard_data.investments_80c)}</td></tr>
+                        <tr><th>Total Annual Income</th><td>INR ${formatCurrency(data.dashboard_data.total_income)}</td></tr>
+                    </table>
+                </div>
+                <div class="section">
+                    <h2 class="section-title">Tax Regime Comparison</h2>
+                    <table class="table">
+                        <thead><tr><th></th><th style="font-weight: bold;">Old Regime</th><th style="font-weight: bold;">New Regime</th></tr></thead>
+                        <tbody>
+                            <tr><th>Taxable Income</th><td>INR ${formatCurrency(data.tax_analysis.old_regime.taxable_income)}</td><td>INR ${formatCurrency(data.tax_analysis.new_regime.taxable_income)}</td></tr>
+                            <tr class="highlight"><th>Tax Payable</th><td>INR ${formatCurrency(data.tax_analysis.old_regime.tax_payable)}</td><td>INR ${formatCurrency(data.tax_analysis.new_regime.taxable_income)}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="section">
+                    <h2 class="section-title">Spending Breakdown</h2>
+                    <div class="chart-container">
+                        <img src="${chartImageSrc}" alt="Spending Breakdown Chart"/>
+                    </div>
+                </div>
+                <div class="section">
+                     <h2 class="section-title">AI Recommendations</h2>
+                     <div class="recommendation-box">
+                         <h3>Tax Savings</h3>
+                         <ul>${taxRecsHTML}</ul>
+                    </div>
+                     <div class="recommendation-box">
+                         <h3>CIBIL Score Improvement</h3>
+                         <ul>${cibilRecsHTML}</ul>
+                     </div>
+                </div>
+            </div>
+        `;
+    }
+});
