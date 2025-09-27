@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch('https://Rahul9969.pythonanywhere.com/upload', {
+            const response = await fetch('https://taxwise-api-unique.onrender.com/upload', {
                 method: 'POST',
                 body: formData,
             });
@@ -339,5 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 });
+
 
 
