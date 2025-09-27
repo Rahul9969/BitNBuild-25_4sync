@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showLandingPage();
 
     // =============================================================================
-    // AI CHAT ASSISTANT LOGIC (NOW WITH LIVE API)
+    // AI CHAT ASSISTANT LOGIC (WITH FALLBACK)
     // =============================================================================
     const toggleChat = () => {
         const isHidden = aiChatModal.classList.contains('hidden');
@@ -129,14 +129,15 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
         try {
-            const response = await fetch('https://taxwise-api-unique.onrender.com//chat', {
+            const response = await fetch('https://taxwise-api-unique.onrender.com/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: userInput }),
             });
 
             if (!response.ok) {
-                throw new Error('Failed to get a response from the AI assistant.');
+                // If the server responds with an error (e.g., 500), throw to trigger the catch block
+                throw new Error('Server responded with an error.');
             }
 
             const data = await response.json();
@@ -144,9 +145,29 @@ document.addEventListener('DOMContentLoaded', () => {
             addMessageToChat(data.reply, 'ai');
 
         } catch (error) {
+            // CATCH BLOCK: This runs if the fetch() fails (network error, CORS, server down)
+            console.error('Live Chat API Error:', error); // Log the actual error for debugging
             thinkingElement.remove();
-            addMessageToChat('Sorry, I am having trouble connecting to the AI service right now. Please try again later.', 'ai');
-            console.error('Chat API Error:', error);
+            
+            // Get hardcoded response as a fallback
+            const fallbackResponse = getCuratedAiResponse(userInput);
+            addMessageToChat(fallbackResponse, 'ai'); // Display the fallback response
+        }
+    };
+
+    // This function provides hard-coded answers if the live API call fails.
+    const getCuratedAiResponse = (prompt) => {
+        const p = prompt.toLowerCase();
+        if (p.includes('cibil') || p.includes('score')) {
+            return "To improve your CIBIL score, always pay your bills on time, keep your credit utilization below 30%, and maintain a healthy mix of credit types (like credit cards and loans). Avoid applying for too much credit at once.";
+        } else if (p.includes('tax') || p.includes('regime')) {
+            return "The Old Tax Regime allows claiming deductions (like HRA, 80C). The New Tax Regime has lower slab rates but fewer deductions. The better option depends on your income and investments.";
+        } else if (p.includes('80c')) {
+            return "Section 80C allows reducing taxable income by up to ₹1,50,000 via investments in PPF, ELSS mutual funds, life insurance, etc.";
+        } else if (p.includes('hello') || p.includes('hi')) {
+            return "Hello there! How can I assist you with your tax and finance questions?";
+        } else {
+            return "I can help with questions about Indian tax regimes, CIBIL scores, and investments like 80C. Please try asking about one of those topics.";
         }
     };
 
@@ -495,5 +516,4 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 });
-
 
