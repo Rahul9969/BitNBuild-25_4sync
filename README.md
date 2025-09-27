@@ -24,5 +24,5 @@ The platform automatically computes tax liabilities, **maximizes legal tax rebat
 * **Technologies:** 
     * **Backend:** Python
     * **Frontend:** Html,CSS,JavaScript
-    * **APIs:**Google Gemini
-    * **Deployment:**Github,PythonAnywhere 
+    * **APIs:** Google Gemini
+    * **Deployment:** Github,PythonAnywhere 
