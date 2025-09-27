@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // =============================================================================
-    // FILE UPLOAD & API (REAL)
+    // FILE UPLOAD & API
     // =============================================================================
     document.getElementById('upload-button').addEventListener('click', () => document.getElementById('file-upload').click());
     document.getElementById('file-upload').addEventListener('change', (event) => {
@@ -207,7 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch('https://taxwise-api-unique.onrender.com/upload', {
+            // NOTE: Replace this with your deployed backend URL
+            const response = await fetch('https://taxwise-api-unique.onrender.com//upload', {
                 method: 'POST',
                 body: formData,
             });
@@ -228,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('download-pdf-button').disabled = false;
             document.getElementById('pdf-note').textContent = "Your financial summary is ready for download.";
         } catch (error) {
-            statusDiv.innerHTML = `<div class="text-red-500 font-semibold">Error: ${error.message}. Is the backend server running?</div>`;
+            statusDiv.innerHTML = `<div class="text-red-500 font-semibold">Error: Failed to fetch. Please ensure the backend server is running and accessible.</div>`;
         } finally {
             cibilLoader.classList.add('hidden');
             cibilDisplay.classList.remove('hidden');
@@ -255,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         data.transactions.forEach(tx => {
             const amount = tx.credit > 0 ? `+ ₹ ${formatCurrency(tx.credit)}` : `- ₹ ${formatCurrency(tx.debit)}`;
             const amountColor = tx.credit > 0 ? 'text-green-400' : 'text-red-400';
-            const date = tx.date || 'N/A';
+            const date = tx.date || tx['Transaction Date'] || 'N/A'; // Added fallback for different date column names
             transactionsContainer.innerHTML += `<div class="flex justify-between items-center py-1.5 border-b border-gray-700/50"><div><p class="font-medium text-main-header">${tx.description || 'N/A'}</p><p class="text-sm text-main-subheader">${date}</p></div><p class="font-semibold ${amountColor}">${amount}</p></div>`;
         });
         
@@ -280,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('tax-optimizer-content');
         const isOldRecommended = data.recommended_regime === 'old';
         const recommendationsHTML = data.recommendations?.length ? data.recommendations.map(rec => `<li>${rec}</li>`).join('') : '<li>No specific tax recommendations.</li>';
-        container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="card p-6 border-2 ${isOldRecommended ? 'border-amber-400' : 'border-transparent'}"><div class="flex justify-between items-center"><h3 class="text-xl font-bold text-main-header">Old Regime</h3>${isOldRecommended ? '<span class="bg-amber-400 text-white text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>' : ''}</div><div class="mt-4 space-y-2"><p class="text-main-subheader">Taxable Income: <span class="font-semibold text-main-header">₹ ${formatCurrency(data.old_regime.taxable_income)}</span></p><p class="text-main-header font-bold text-2xl">Tax Payable: <span class="text-green-400">₹ ${formatCurrency(data.old_regime.tax_payable)}</span></p></div></div><div class="card p-6 border-2 ${!isOldRecommended ? 'border-amber-400' : 'border-transparent'}"><div class="flex justify-between items-center"><h3 class="text-xl font-bold text-main-header">New Regime</h3>${!isOldRecommended ? '<span class="bg-amber-400 text-white text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>' : ''}</div><div class="mt-4 space-y-2"><p class="text-main-subheader">Taxable Income: <span class="font-semibold text-main-header">₹ ${formatCurrency(data.new_regime.taxable_income)}</span></p><p class="text-main-header font-bold text-2xl">Tax Payable: <span class="text-green-400">₹ ${formatCurrency(data.new_regime.tax_payable)}</span></p></div></div></div><div class="card p-6 mt-6"><h3 class="text-lg font-semibold text-main-header flex items-center"><svg class="h-6 w-6 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>AI Recommendations</h3><ul class="list-disc list-inside mt-3 text-main-subheader space-y-2">${recommendationsHTML}</ul></div>`;
+        container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="card p-6 border-2 ${isOldRecommended ? 'border-green-400' : 'border-transparent'}"><div class="flex justify-between items-center"><h3 class="text-xl font-bold text-main-header">Old Regime</h3>${isOldRecommended ? '<span class="bg-green-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>' : ''}</div><div class="mt-4 space-y-2"><p class="text-main-subheader">Taxable Income: <span class="font-semibold text-main-header">₹ ${formatCurrency(data.old_regime.taxable_income)}</span></p><p class="text-main-header font-bold text-2xl">Tax Payable: <span class="text-green-400">₹ ${formatCurrency(data.old_regime.tax_payable)}</span></p></div></div><div class="card p-6 border-2 ${!isOldRecommended ? 'border-green-400' : 'border-transparent'}"><div class="flex justify-between items-center"><h3 class="text-xl font-bold text-main-header">New Regime</h3>${!isOldRecommended ? '<span class="bg-green-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>' : ''}</div><div class="mt-4 space-y-2"><p class="text-main-subheader">Taxable Income: <span class="font-semibold text-main-header">₹ ${formatCurrency(data.new_regime.taxable_income)}</span></p><p class="text-main-header font-bold text-2xl">Tax Payable: <span class="text-green-400">₹ ${formatCurrency(data.new_regime.tax_payable)}</span></p></div></div></div><div class="card p-6 mt-6"><h3 class="text-lg font-semibold text-main-header flex items-center"><svg class="h-6 w-6 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>AI Recommendations</h3><ul class="list-disc list-inside mt-3 text-main-subheader space-y-2">${recommendationsHTML}</ul></div>`;
     }
     
     function updateCibilAdvisor(data) {
@@ -338,7 +339,139 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // =============================================================================
+    // PDF GENERATION LOGIC
+    // =============================================================================
+    document.getElementById('download-pdf-button').addEventListener('click', downloadPDF);
+
+    async function downloadPDF() {
+        if (!analysisData) {
+            alert('Please process your financial documents first.');
+            return;
+        }
+
+        // 1. Temporarily disable chart animation for clean capture
+        if (spendingChart) {
+            spendingChart.options.animation.duration = 0;
+            spendingChart.update();
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+            orientation: 'p',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        // 2. Create a temporary, off-screen container for the report's HTML
+        const reportContainer = document.createElement('div');
+        reportContainer.style.position = 'absolute';
+        reportContainer.style.left = '-9999px';
+        reportContainer.style.width = '210mm'; // A4 width
+        reportContainer.innerHTML = generateReportHTML(analysisData);
+        document.body.appendChild(reportContainer);
+        
+        // Give the browser a moment to render the content and images
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 3. Use jsPDF's html method to render the container
+        doc.html(reportContainer, {
+            callback: function (doc) {
+                doc.save(`TaxWise_Financial_Summary_${new Date().toLocaleDateString('en-IN')}.pdf`);
+                
+                // 5. Clean up the temporary container
+                document.body.removeChild(reportContainer);
+
+                // 6. Re-enable chart animation
+                if (spendingChart) {
+                    spendingChart.options.animation.duration = 1000;
+                    spendingChart.update();
+                }
+            },
+            x: 0,
+            y: 0,
+            width: 210, // A4 width
+            windowWidth: 210 * 3.78 // approx conversion from mm to pixels
+        });
+    }
+    
+    function generateReportHTML(data) {
+        const today = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+        let chartImageSrc = '';
+        if (spendingChart) {
+             chartImageSrc = spendingChart.toBase64Image();
+        }
+
+        const taxRecsHTML = data.tax_analysis.recommendations.map(rec => `<li>${rec}</li>`).join('');
+        const cibilRecsHTML = data.cibil_analysis.recommendations.map(rec => `<li>${rec}</li>`).join('');
+
+        return `
+            <style>
+                body { font-family: 'Inter', sans-serif; color: #1f2937; -webkit-font-smoothing: antialiased; }
+                .report-wrapper { padding: 20px; background-color: white; width: 100%; box-sizing: border-box; }
+                .header { background-color: #1e293b; color: white; padding: 16px; text-align: center; border-radius: 8px; }
+                .header h1 { font-size: 28px; font-weight: bold; margin: 0; }
+                .header p { margin: 4px 0 0 0; font-size: 14px; }
+                .section { clear: both; page-break-inside: avoid; margin-top: 25px; } 
+                .section-title { font-size: 20px; font-weight: bold; color: #1e293b; border-bottom: 2px solid #10b981; padding-bottom: 8px; margin-bottom: 16px;}
+                .table { width: 100%; border-collapse: collapse; }
+                .table th, .table td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-size: 14px; }
+                .table th { background-color: #f1f5f9; font-weight: 600; }
+                .highlight { background-color: #d1fae5; font-weight: bold; }
+                .chart-container { text-align: center; margin-top: 20px; page-break-inside: avoid; }
+                .chart-container img { max-width: 80%; height: auto; margin: 0 auto; display: block; }
+                .recommendation-box { background-color: #f8fafc; padding: 16px; margin-top: 16px; border-left: 4px solid #10b981; border-radius: 4px; }
+                .recommendation-box h3 { font-size: 16px; font-weight: bold; color: #1e293b; margin:0 0 10px 0; }
+                ul { list-style-position: inside; margin: 0; padding-left: 5px; }
+                li { margin-bottom: 8px; font-size: 14px; }
+            </style>
+            <div class="report-wrapper">
+                <div class="header">
+                    <h1>TaxWise Financial Summary</h1>
+                    <p>Report Generated on: ${today}</p>
+                </div>
+                
+                <div class="section">
+                    <h2 class="section-title">Dashboard Overview</h2>
+                    <table class="table">
+                        <tr><th style="width: 50%;">Projected Tax Liability (${data.tax_analysis.recommended_regime.toUpperCase()} Regime)</th><td>INR ${formatCurrency(data.tax_analysis[`${data.tax_analysis.recommended_regime.toLowerCase()}_regime`].tax_payable)}</td></tr>
+                        <tr><th>Estimated CIBIL Score</th><td>${data.cibil_analysis.score}</td></tr>
+                        <tr><th>Total 80C Investments</th><td>INR ${formatCurrency(data.dashboard_data.investments_80c)}</td></tr>
+                        <tr><th>Total Annual Income</th><td>INR ${formatCurrency(data.dashboard_data.total_income)}</td></tr>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Tax Regime Comparison</h2>
+                    <table class="table">
+                        <thead><tr><th></th><th style="font-weight: bold;">Old Regime</th><th style="font-weight: bold;">New Regime</th></tr></thead>
+                        <tbody>
+                            <tr><th>Taxable Income</th><td>INR ${formatCurrency(data.tax_analysis.old_regime.taxable_income)}</td><td>INR ${formatCurrency(data.tax_analysis.new_regime.taxable_income)}</td></tr>
+                            <tr class="highlight"><th>Tax Payable</th><td>INR ${formatCurrency(data.tax_analysis.old_regime.tax_payable)}</td><td>INR ${formatCurrency(data.tax_analysis.new_regime.tax_payable)}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="section">
+                    <h2 class="section-title">Spending Breakdown</h2>
+                    <div class="chart-container">
+                        <img src="${chartImageSrc}" alt="Spending Breakdown Chart"/>
+                    </div>
+                </div>
+
+                <div class="section">
+                     <h2 class="section-title">AI Recommendations</h2>
+                     <div class="recommendation-box">
+                         <h3>Tax Savings</h3>
+                         <ul>${taxRecsHTML}</ul>
+                    </div>
+                     <div class="recommendation-box">
+                         <h3>CIBIL Score Improvement</h3>
+                         <ul>${cibilRecsHTML}</ul>
+                     </div>
+                </div>
+            </div>
+        `;
+    }
 });
-
-
 
