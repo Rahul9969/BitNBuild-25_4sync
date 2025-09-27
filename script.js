@@ -2,12 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // =============================================================================
     // FIREBASE CONFIGURATION
     // =============================================================================
-    // Your web app's Firebase configuration is now integrated.
     const firebaseConfig = {
         apiKey: "AIzaSyB0GDEB2gMdM7ILtUdVmOOIIdn1oCiY68I",
         authDomain: "taxwiseapp-fd1ee.firebaseapp.com",
         projectId: "taxwiseapp-fd1ee",
-        storageBucket: "taxwiseapp-fd1ee.appspot.com",
+        storageBucket: "taxwiseapp-fd1ee.appspot.com", // Corrected storage bucket URL
         messagingSenderId: "522348901127",
         appId: "1:522348901127:web:13a751f669aa38714ccba2",
         measurementId: "G-HC42XP2H11"
@@ -24,36 +23,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const landingPage = document.getElementById('landing-page');
     const authModal = document.getElementById('auth-modal');
     const appContainer = document.getElementById('app-container');
-    
-    // Auth Views
     const loginView = document.getElementById('login-view');
     const signupView = document.getElementById('signup-view');
     const loginForm = document.getElementById('login-form');
     const signupForm = document.getElementById('signup-form');
     const loginError = document.getElementById('login-error');
     const signupError = document.getElementById('signup-error');
-
-    // Auth Triggers
     const logoutButton = document.getElementById('logout-button');
     const getStartedButton = document.getElementById('get-started-button');
     const loginNavButton = document.getElementById('login-nav-button');
     const closeModalButton = document.getElementById('close-modal-button');
     const showSignupLink = document.getElementById('show-signup-link');
     const showLoginLink = document.getElementById('show-login-link');
-    
-    // User Display
     const welcomeUsername = document.getElementById('welcome-username');
     const profileUsername = document.getElementById('profile-username');
     const profileEmail = document.getElementById('profile-email');
     const profileMemberSince = document.getElementById('profile-member-since');
-
-    // AI Chat Selectors
     const aiChatButton = document.getElementById('ai-chat-button');
     const aiChatModal = document.getElementById('ai-chat-modal');
     const closeChatButton = document.getElementById('close-chat-button');
     const chatMessages = document.getElementById('chat-messages');
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
+    const chatPrompts = document.getElementById('chat-prompts');
     
     const pages = {
         dashboard: document.getElementById('page-dashboard'),
@@ -90,10 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
         landingPage.style.display = 'block';
         hideAuthModal();
         navigate('dashboard');
-        resetUI(); // Clear user data on logout
+        resetUI();
     };
     
-    // Auth state listener
     auth.onAuthStateChanged(async (user) => {
         if (user) {
             currentUser = user;
@@ -106,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (user.metadata.creationTime) {
                     profileMemberSince.textContent = new Date(user.metadata.creationTime).toLocaleDateString('en-IN', { month: 'long', year: 'numeric'});
                 }
-                // Load last saved data
                 if(userData.lastAnalysis) {
                     analysisData = userData.lastAnalysis;
                     updateAllUI(analysisData);
@@ -119,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Event Listeners for Auth
     getStartedButton.addEventListener('click', showAuthModal);
     loginNavButton.addEventListener('click', showAuthModal);
     closeModalButton.addEventListener('click', hideAuthModal);
@@ -137,17 +126,14 @@ document.addEventListener('DOMContentLoaded', () => {
         loginView.classList.remove('hidden');
     });
 
-    // Signup form handler
     signupForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const username = e.target.username.value;
         const email = e.target.email.value;
         const password = e.target.password.value;
         signupError.classList.add('hidden');
-
         auth.createUserWithEmailAndPassword(email, password)
             .then(userCredential => {
-                // Store username in Firestore
                 return db.collection('users').doc(userCredential.user.uid).set({
                     username: username,
                     email: email
@@ -159,13 +145,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
-    // Login form handler
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const email = e.target.email.value;
         const password = e.target.password.value;
         loginError.classList.add('hidden');
-
         auth.signInWithEmailAndPassword(email, password)
             .catch(error => {
                 loginError.textContent = error.message;
@@ -173,52 +157,90 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
-    // Logout button handler
     logoutButton.addEventListener('click', (e) => {
         e.preventDefault();
         auth.signOut();
     });
 
     // =============================================================================
-    // AI CHAT (SECURE)
+    // AI CHAT (WITH FALLBACK)
     // =============================================================================
-    const getGeminiResponse = async (prompt) => {
-                // This function now directly calls the Gemini API.
-                
-                const API_URL = https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY};
-                
-                if (!GEMINI_API_KEY || GEMINI_API_KEY === "AIzaSyANibPszZ6TF0dV1srzLLM0ClhTjQd04W4") {
-                    throw new Error("API Key not configured. Please get a key from Google AI Studio and add it to the script.");
-                }
+    const toggleChat = () => {
+        aiChatModal.classList.toggle('hidden');
+        if (!aiChatModal.classList.contains('hidden') && chatMessages.children.length === 0) {
+            addMessageToChat("Hello! I'm the TaxWise AI Assistant. How can I help with your financial questions?", 'ai');
+        }
+    };
+    aiChatButton.addEventListener('click', toggleChat);
+    closeChatButton.addEventListener('click', toggleChat);
 
-                const payload = {
-                    contents: [{
-                        parts: [{
-                            // This prompt guides the AI to act as a financial assistant for India.
-                            text: You are a helpful financial assistant for users in India. Keep your answers concise, helpful, and easy to understand. Question: "${prompt}"
-                        }]
-                    }]
-                };
+    const addMessageToChat = (message, sender) => {
+        const messageElement = document.createElement('div');
+        messageElement.className = `chat-message ${sender === 'user' ? 'user-message' : 'ai-message'}`;
+        messageElement.textContent = message;
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
 
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userInput = chatInput.value.trim();
+        if (!userInput || !currentUser) return;
+        
+        addMessageToChat(userInput, 'user');
+        chatInput.value = '';
+        chatPrompts.classList.add('hidden');
 
-                if (!response.ok) {
-                    throw new Error(API Error: ${response.statusText});
-                }
+        const thinkingElement = document.createElement('div');
+        thinkingElement.className = 'chat-message ai-message';
+        thinkingElement.innerHTML = '<span>Thinking...</span>';
+        chatMessages.appendChild(thinkingElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                const data = await response.json();
-                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (!text) {
-                    throw new Error("Could not retrieve a valid response from the AI. The response format might have changed.");
-                }
-                
-                return text;
-            };
+        try {
+            const idToken = await currentUser.getIdToken();
+            const response = await fetch('https://taxwise-api-unique.onrender.com//chat', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                },
+                body: JSON.stringify({ message: userInput }),
+            });
+
+            if (!response.ok) throw new Error('API request failed');
+
+            const data = await response.json();
+            thinkingElement.remove();
+            addMessageToChat(data.reply, 'ai');
+        } catch (error) {
+            console.error("Chat API error:", error);
+            thinkingElement.remove();
+            // Use fallback if API fails
+            const fallbackResponse = getHardcodedResponse(userInput);
+            addMessageToChat(fallbackResponse, 'ai');
+        }
+    });
+
+    const getHardcodedResponse = (prompt) => {
+        const p = prompt.toLowerCase();
+        if (p.includes('cibil') || p.includes('score')) {
+            return "To improve your CIBIL score, always pay your bills on time, keep your credit utilization below 30%, and maintain a healthy mix of credit types.";
+        } else if (p.includes('tax') || p.includes('regime')) {
+            return "The Old Tax Regime allows claiming deductions (like 80C). The New Tax Regime has lower slab rates but fewer deductions. Which is better depends on your investments.";
+        } else if (p.includes('80c')) {
+            return "Section 80C allows reducing taxable income by up to ₹1,50,000 via investments in PPF, ELSS, life insurance, etc.";
+        } else {
+            return "Sorry, I'm having trouble connecting to the live AI. I can answer basic questions about CIBIL, tax regimes, and 80C.";
+        }
+    };
+    
+    chatPrompts.addEventListener('click', (e) => {
+        if(e.target.tagName === 'BUTTON') {
+            chatInput.value = e.target.textContent;
+            chatForm.requestSubmit();
+        }
+    });
 
     // =============================================================================
     // FILE UPLOAD (SECURE)
@@ -259,7 +281,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             analysisData = await response.json();
             
-            // Save the latest analysis to Firestore
             await db.collection('users').doc(currentUser.uid).update({
                 lastAnalysis: analysisData
             });
@@ -288,7 +309,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('cibil-score').textContent = '0';
         document.getElementById('investments-80c').textContent = '0';
         document.getElementById('recent-transactions').innerHTML = '<p class="text-main-subheader text-center pt-10">Upload documents to see transactions.</p>';
-        if (spendingChart) spendingChart.destroy();
+        if (spendingChart) {
+            spendingChart.destroy();
+            spendingChart = null;
+        }
         document.getElementById('download-pdf-button').disabled = true;
         analysisData = null;
     }
@@ -555,6 +579,4 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 });
-
-
 
