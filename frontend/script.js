@@ -178,6 +178,11 @@ function updateTaxOptimizer(data) {
     const container = document.getElementById('tax-optimizer-content');
     const isOldRecommended = data.recommended_regime === 'old';
 
+    // Check if recommendations exist and provide a fallback message.
+    const recommendationsHTML = data.recommendations && data.recommendations.length > 0
+        ? data.recommendations.map(rec => `<li>${rec}</li>`).join('')
+        : '<li>No specific tax recommendations available at this time.</li>';
+
     container.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="card p-6 border-2 ${isOldRecommended ? 'border-indigo-500' : 'border-transparent'}">
@@ -204,7 +209,7 @@ function updateTaxOptimizer(data) {
         <div class="card p-6 mt-6">
             <h3 class="text-lg font-semibold text-gray-700 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>AI Recommendations</h3>
             <ul class="list-disc list-inside mt-3 text-gray-600 space-y-2">
-                ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                ${recommendationsHTML}
             </ul>
         </div>
     `;
@@ -216,6 +221,12 @@ function updateTaxOptimizer(data) {
  */
 function updateCibilAdvisor(data) {
      const container = document.getElementById('cibil-advisor-content');
+     
+     // Check if recommendations exist and provide a fallback message.
+     const recommendationsHTML = data.recommendations && data.recommendations.length > 0
+        ? data.recommendations.map(rec => `<li>${rec}</li>`).join('')
+        : '<li>No specific CIBIL recommendations available at this time.</li>';
+
      container.innerHTML = `
         <div class="card p-6">
              <h3 class="text-xl font-bold text-gray-800">Your CIBIL Score: <span class="text-green-500">${data.score}</span></h3>
@@ -241,7 +252,7 @@ function updateCibilAdvisor(data) {
          <div class="card p-6 mt-6">
             <h3 class="text-lg font-semibold text-gray-700 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 2a3 3 0 00-3 3v1.432l.21.018a22.99 22.99 0 0115.58 0l.21-.018V5a3 3 0 00-3-3H5zm12 5.432l-.21.018a22.99 22.99 0 01-15.58 0L3 7.432V15a3 3 0 003 3h12a3 3 0 003-3V7.432zM14 12a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd" /></svg>How to Improve Your Score</h3>
             <ul class="list-disc list-inside mt-3 text-gray-600 space-y-2">
-                ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                ${recommendationsHTML}
             </ul>
         </div>
      `;
@@ -257,11 +268,33 @@ function updateCibilAdvisor(data) {
  */
 function renderSpendingChart(spendingData) {
     const ctx = document.getElementById('spending-chart').getContext('2d');
-    const labels = Object.keys(spendingData);
-    const data = Object.values(spendingData);
+    
+    // Consolidate small categories into 'Other' for a cleaner chart
+    const totalSpending = Object.values(spendingData).reduce((sum, value) => sum + value, 0);
+    const threshold = 0.03; // Categories below 3% will be grouped
+    const consolidatedData = {};
+    let otherTotal = 0;
+
+    for (const [category, amount] of Object.entries(spendingData)) {
+        // Exclude income from the spending chart
+        if (category.toLowerCase().includes('income')) continue;
+
+        if (amount / totalSpending < threshold) {
+            otherTotal += amount;
+        } else {
+            consolidatedData[category] = amount;
+        }
+    }
+    // Add the consolidated 'Other' amount if it exists
+    if (otherTotal > 0) {
+        consolidatedData['Other'] = (consolidatedData['Other'] || 0) + otherTotal;
+    }
+    
+    const labels = Object.keys(consolidatedData);
+    const data = Object.values(consolidatedData);
     
     const backgroundColors = [
-        '#818cf8', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'
+        '#818cf8', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#f472b6'
     ];
     
     // Destroy the previous chart instance if it exists to prevent rendering issues
@@ -312,6 +345,7 @@ document.getElementById('download-pdf-button').addEventListener('click', downloa
 
 /**
  * Generates and downloads a PDF summary of the financial analysis.
+ * FIX: This version uses a robust html2canvas -> manual pagination method.
  */
 async function downloadPDF() {
     if (!analysisData) {
@@ -319,55 +353,73 @@ async function downloadPDF() {
         return;
     }
 
-    // Temporarily disable chart animation for a clean screenshot
+    const downloadButton = document.getElementById('download-pdf-button');
+    downloadButton.disabled = true;
+    downloadButton.innerHTML = `<span>Generating PDF...</span>`;
+
+    // Temporarily disable chart animation for a clean capture
     if (spendingChart) {
         spendingChart.options.animation.duration = 0;
         spendingChart.update();
     }
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({
-        orientation: 'p',
-        unit: 'mm',
-        format: 'a4'
-    });
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = doc.internal.pageSize.getWidth();
+    const pdfHeight = doc.internal.pageSize.getHeight();
 
-    // Create an off-screen container to render the report HTML
+    // Create an off-screen container to render the report HTML for the PDF
     const reportContainer = document.createElement('div');
     reportContainer.style.position = 'absolute';
     reportContainer.style.left = '-9999px';
-    reportContainer.style.width = '210mm'; 
+    reportContainer.style.width = `${pdfWidth}mm`; // A4 width for proper scaling
     reportContainer.innerHTML = generateReportHTML(analysisData);
     document.body.appendChild(reportContainer);
     
-    // Wait for the content and images to render
+    // Wait a moment for the content to render
     await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Use html2canvas to capture the rendered report as an image
-    const canvas = await html2canvas(reportContainer.querySelector('.report-wrapper'), {
-        scale: 2, // Higher scale for better quality
+    
+    const canvas = await html2canvas(reportContainer, {
+        scale: 2, // Use a higher scale for better resolution
         useCORS: true
     });
-
-    // Add the captured image to the PDF document
-    const imgData = canvas.toDataURL('image/png');
-    const imgProps = doc.getImageProperties(imgData);
-    const pdfWidth = doc.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
     
+    document.body.removeChild(reportContainer); // Clean up immediately
+
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = pdfWidth;
+    const imgHeight = canvas.height * pdfWidth / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    // Add the first page
+    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pdfHeight;
+
+    // Add new pages if the content is longer than one page
+    while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        doc.addPage();
+        doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+    }
+
     // Save the PDF
     doc.save(`TaxWise_Financial_Summary_${new Date().toLocaleDateString('en-IN')}.pdf`);
-
-    // Clean up the off-screen container
-    document.body.removeChild(reportContainer);
 
     // Re-enable chart animation
     if (spendingChart) {
         spendingChart.options.animation.duration = 1000;
         spendingChart.update();
     }
+    
+    downloadButton.disabled = false;
+    downloadButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+        <span>Download PDF Summary</span>
+    `;
 }
+
 
 /**
  * Generates the HTML content for the PDF report.
@@ -381,27 +433,37 @@ function generateReportHTML(data) {
          // Get a base64 image representation of the current chart state
          chartImageSrc = spendingChart.toBase64Image();
     }
+    
+    // Check if recommendations exist and provide a fallback message.
+    const taxRecsHTML = data.tax_analysis.recommendations && data.tax_analysis.recommendations.length > 0
+        ? data.tax_analysis.recommendations.map(rec => `<li>${rec}</li>`).join('')
+        : '<li>No specific tax recommendations available at this time.</li>';
+        
+    const cibilRecsHTML = data.cibil_analysis.recommendations && data.cibil_analysis.recommendations.length > 0
+        ? data.cibil_analysis.recommendations.map(rec => `<li>${rec}</li>`).join('')
+        : '<li>No specific CIBIL recommendations available at this time.</li>';
+
 
     // This HTML structure is designed specifically for clean PDF rendering
     return `
         <style>
             body { font-family: 'Inter', sans-serif; color: #1f2937; -webkit-font-smoothing: antialiased; }
-            .report-wrapper { padding: 20px; background-color: white; width: 100%; box-sizing: border-box; }
+            .report-wrapper { padding: 15px; background-color: white; width: 100%; box-sizing: border-box; }
             .header { background-color: #4a5568; color: white; padding: 16px; text-align: center; border-radius: 8px; }
-            .header h1 { font-size: 28px; font-weight: bold; margin: 0; }
+            .header h1 { font-size: 26px; font-weight: bold; margin: 0; }
             .header p { margin: 4px 0 0 0; font-size: 14px; }
-            .section { clear: both; page-break-inside: avoid; margin-top: 30px; } 
-            .section-title { font-size: 20px; font-weight: bold; color: #4a5568; border-bottom: 2px solid #667eea; padding-bottom: 8px; margin-bottom: 16px;}
+            .section { clear: both; page-break-inside: avoid; margin-top: 25px; } 
+            .section-title { font-size: 18px; font-weight: bold; color: #4a5568; border-bottom: 2px solid #667eea; padding-bottom: 8px; margin-bottom: 12px;}
             .table { width: 100%; border-collapse: collapse; }
-            .table th, .table td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-size: 14px; }
+            .table th, .table td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 13px; }
             .table th { background-color: #f0f2f5; font-weight: 600; }
             .highlight { background-color: #e0e7ff; font-weight: bold; }
             .chart-container { text-align: center; margin-top: 20px; page-break-inside: avoid; }
-            .chart-container img { max-width: 70%; height: auto; margin: 0 auto; display: block; }
+            .chart-container img { max-width: 65%; height: auto; margin: 0 auto; display: block; }
             .recommendation-box { background-color: #f3f4f6; padding: 16px; margin-top: 16px; border-left: 4px solid #667eea; border-radius: 4px; }
-            .recommendation-box h3 { font-size: 16px; font-weight: bold; color: #2d3748; margin:0 0 10px 0; }
+            .recommendation-box h3 { font-size: 15px; font-weight: bold; color: #2d3748; margin:0 0 10px 0; }
             ul { list-style-position: inside; margin: 0; padding-left: 5px; }
-            li { margin-bottom: 8px; font-size: 14px; }
+            li { margin-bottom: 8px; font-size: 13px; }
         </style>
         <div class="report-wrapper">
             <div class="header">
@@ -441,11 +503,11 @@ function generateReportHTML(data) {
                  <h2 class="section-title">AI Recommendations</h2>
                  <div class="recommendation-box">
                      <h3>Tax Savings</h3>
-                     <ul>${data.tax_analysis.recommendations.map(rec => `<li>${rec}</li>`).join('')}</ul>
+                     <ul>${taxRecsHTML}</ul>
                 </div>
                  <div class="recommendation-box">
                      <h3>CIBIL Score Improvement</h3>
-                     <ul>${data.cibil_analysis.recommendations.map(rec => `<li>${rec}</li>`).join('')}</ul>
+                     <ul>${cibilRecsHTML}</ul>
                  </div>
             </div>
         </div>
