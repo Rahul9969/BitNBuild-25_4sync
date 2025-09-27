@@ -7,7 +7,8 @@ import requests # Using requests for more direct API calls
 import json
 import numpy as np
 
-app = Flask(_name_)
+# FIX: Corrected _name_ to __name__
+app = Flask(__name__)
 CORS(app)
 
 # --- IMPORTANT: CONFIGURE YOUR GOOGLE AI API KEY HERE ---
@@ -142,7 +143,7 @@ def get_dynamic_ai_recommendations(financial_summary):
         result = response.json()
 
         text_content = result.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '{}')
-        cleaned_response = text_content.strip().replace("json", "").replace("", "")
+        cleaned_response = text_content.strip().replace("json", "").replace("```", "")
         return json.loads(cleaned_response)
 
     except Exception as e:
@@ -305,8 +306,6 @@ def upload_file():
         print(f"An error occurred: {e}")
         return jsonify({"error": f"An unexpected error occurred while processing the file: {str(e)}"}), 500
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     app.run(debug=True)
 
-# Required libraries:
-# pip install Flask pandas Flask-Cors requests numpy
