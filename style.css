@@ -15,7 +15,7 @@ body {
 }
 
 /* Glassmorphism Card Style */
-.card, .feature-card, #login-box {
+.card, .feature-card, #auth-box {
     background-color: rgba(30, 41, 59, 0.5); /* Semi-transparent slate */
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -28,8 +28,8 @@ body {
     border-color: rgba(16, 185, 129, 0.5); /* Greenish border on hover */
 }
 
-/* Login Modal Styles */
-#login-modal {
+/* Auth Modal Styles */
+#auth-modal {
     background-color: rgba(0,0,0,0.7);
     backdrop-filter: blur(5px);
     transition: opacity 0.3s ease-in-out;
