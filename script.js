@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const idToken = await currentUser.getIdToken();
-            const response = await fetch('http://127.0.0.1:5000/chat', {
+            const response = await fetch('https://taxwise-api-unique.onrender.com/chat', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const idToken = await currentUser.getIdToken();
-            const response = await fetch('http://127.0.0.1:5000/upload', {
+            const response = await fetch('https://taxwise-api-unique.onrender.com//upload', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${idToken}`
@@ -564,4 +564,5 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 });
+
 
