@@ -87,7 +87,7 @@ async function handleFileUpload(files) {
 
     try {
         // Send the files to the Flask backend API
-        const response = await fetch('https://Rahul9969.pythonanywhere.com/upload', {
+        const response = await fetch('https://rahul9969.pythonanywhere.com/upload', {
             method: 'POST',
             body: formData,
         });
@@ -513,6 +513,7 @@ function generateReportHTML(data) {
         </div>
     `;
 }
+
 
 
 
