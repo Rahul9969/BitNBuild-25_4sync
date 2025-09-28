@@ -23,6 +23,8 @@ The platform automatically computes tax liabilities, **maximizes legal tax rebat
 * **Domain:** Personal Finance Management, Indian Taxation (Income Tax Act), Credit Health & CIBIL Score,Web/App development.
 * **Technologies:** 
     * **Backend:** Python
+    * 
     * **Frontend:** Html,CSS,JavaScript
     * **APIs:** Google Gemini
-    * **Deployment:** Github,PythonAnywhere 
+    * **Deployment:** Github, Render
+    * **Database:** Firebase
