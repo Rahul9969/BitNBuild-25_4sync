@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // =============================================================================
+   
     // FIREBASE AND API CONFIGURATION
-    // =============================================================================
+
     const firebaseConfig = {
         apiKey: "AIzaSyB0GDEB2gMdM7ILtUdVmOOIIdn1oCiY68I",
         authDomain: "taxwiseapp-fd1ee.firebaseapp.com",
@@ -12,17 +12,15 @@ document.addEventListener('DOMContentLoaded', () => {
         measurementId: "G-HC42XP2H11"
     };
 
-    // IMPORTANT: Add the SAME Google AI API key here for the frontend fallback.
+   
     const GEMINI_API_KEY = "AIzaSyBkv1dXN3-JALMDtEPiyEp4-tEkQx6-ogQ";
 
-    // Initialize Firebase
+   
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // =============================================================================
-    // ELEMENT SELECTORS
-    // =============================================================================
+    
     const landingPage = document.getElementById('landing-page');
     const authModal = document.getElementById('auth-modal');
     const appContainer = document.getElementById('app-container');
@@ -68,9 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let spendingChart = null;
     let currentUser = null;
 
-    // =============================================================================
+  
     // AUTHENTICATION & PAGE VISIBILITY
-    // =============================================================================
+    
     const showAuthModal = () => authModal.classList.remove('hidden');
     const hideAuthModal = () => authModal.classList.add('hidden');
     
@@ -165,9 +163,9 @@ document.addEventListener('DOMContentLoaded', () => {
         auth.signOut();
     });
 
-    // =============================================================================
+   
     // AI CHAT (WITH DUAL API FALLBACK)
-    // =============================================================================
+   
     const toggleChat = () => {
         aiChatModal.classList.toggle('hidden');
         if (!aiChatModal.classList.contains('hidden') && chatMessages.children.length === 0) {
@@ -201,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
         try {
-            // --- Primary Method: Call Backend Server ---
+           
             const idToken = await currentUser.getIdToken();
             const response = await fetch('https://taxwise-api-unique.onrender.com/chat', {
                 method: 'POST',
@@ -218,13 +216,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (backendError) {
             console.warn("Backend chat failed:", backendError.message, "Trying frontend fallback.");
             try {
-                // --- Frontend Fallback: Call Gemini API Directly ---
+            
                 const directResponse = await getGeminiResponseDirectly(userInput);
                 thinkingElement.remove();
                 addMessageToChat(directResponse, 'ai');
             } catch (frontendError) {
                 console.error("Frontend chat fallback also failed:", frontendError.message);
-                // --- Ultimate Fallback: Hardcoded Response ---
+                
                 thinkingElement.remove();
                 const hardcodedResponse = getHardcodedResponse(userInput);
                 addMessageToChat(hardcodedResponse, 'ai');
@@ -282,9 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // =============================================================================
+   
     // FILE UPLOAD (SECURE)
-    // =============================================================================
+   
     document.getElementById('upload-button').addEventListener('click', () => document.getElementById('file-upload').click());
     document.getElementById('file-upload').addEventListener('change', (e) => {
         if (e.target.files.length > 0) handleFileUpload(e.target.files);
@@ -323,9 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // =============================================================================
-    // UI UPDATE & UTILITY FUNCTIONS
-    // =============================================================================
+   
     function updateAllUI(data) {
         updateDashboard(data.dashboard_data);
         updateTaxOptimizer(data.tax_analysis);
@@ -609,3 +605,4 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 });
+
