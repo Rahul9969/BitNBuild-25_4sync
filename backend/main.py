@@ -3,22 +3,18 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import io
 import re
-import requests # Using requests for more direct API calls
+import requests 
 import json
 import numpy as np
 
-# FIX: Corrected _name_ to __name__
+
 app = Flask(__name__)
 CORS(app)
 
-# --- IMPORTANT: CONFIGURE YOUR GOOGLE AI API KEY HERE ---
-# API key is set for direct REST API call.
-# Get your key from Google AI Studio: https://aistudio.google.com/app/apikey
+
 GOOGLE_API_KEY = "AIzaSyBkv1dXN3-JALMDtEPiyEp4-tEkQx6-ogQ"
 
-# ==============================================================================
-# HELPER FUNCTION TO STANDARDIZE CSV COLUMNS
-# ==============================================================================
+
 def standardize_column_names(df):
     """
     Intelligently renames columns to a standard format based on common synonyms.
@@ -40,11 +36,11 @@ def standardize_column_names(df):
     df.rename(columns=new_columns, inplace=True)
     return df
 
-# ==============================================================================
-# AI-POWERED TRANSACTION CATEGORIZATION ENGINE
-# ==============================================================================
+
+
+
 def categorize_transactions(df):
-    # Expanded keywords for better matching
+   
     categories = {
         'Income': ['salary', 'credit-techsolutions', 'freelance income', 'salary credit'],
         'Investments (80C)': ['sip', 'ppf', 'lic premium', 'mutual fund', 'zerodha'],
@@ -57,12 +53,12 @@ def categorize_transactions(df):
         'Utilities': ['electricity', 'water bill', 'gas bill', 'phone bill'],
         'Other': ['upi', 'atm withdrawal', 'transfer']
     }
-    # Fill potential NaN values in description column before processing
+  
     df['description'] = df['description'].fillna('N/A')
     df['description_lower'] = df['description'].str.lower()
 
     def get_category(description):
-        # Ensure description is a string to avoid errors
+       
         if not isinstance(description, str):
             return 'Other'
         for category, keywords in categories.items():
@@ -70,13 +66,11 @@ def categorize_transactions(df):
                 if keyword in description:
                     return category
         return 'Other'
-    # Use lowercase 'category' for consistency
+   
     df['category'] = df['description_lower'].apply(get_category)
     return df
 
-# ==============================================================================
-# FALLBACK RECOMMENDATION ENGINE
-# ==============================================================================
+
 def get_fallback_recommendations(financial_summary):
     """
     Generates rule-based recommendations if the live AI service fails.
@@ -84,7 +78,7 @@ def get_fallback_recommendations(financial_summary):
     tax_recs = []
     cibil_recs = []
 
-    # Tax Recommendations
+   
     if financial_summary['deductions']['80C'] < 150000:
         tax_recs.append("You have not fully utilized your Section 80C limit. Consider investing more in PPF, ELSS, or LIC to save tax.")
     else:
@@ -92,7 +86,7 @@ def get_fallback_recommendations(financial_summary):
 
     tax_recs.append("Review your expenses to identify any other potential deductions, such as health insurance premiums (Section 80D) or donations (Section 80G).")
 
-    # CIBIL Recommendations
+  
     if financial_summary['cibil']['utilization'] > 0.3:
         cibil_recs.append(f"Your credit utilization is at {financial_summary['cibil']['utilization']:.0%}, which is high. Try to keep it below 30% to improve your CIBIL score.")
     else:
@@ -105,9 +99,7 @@ def get_fallback_recommendations(financial_summary):
         "cibil_recommendations": cibil_recs
     }
 
-# ==============================================================================
-# DYNAMIC AI RECOMMENDATION ENGINE (USING GEMINI VIA REST API)
-# ==============================================================================
+
 def get_dynamic_ai_recommendations(financial_summary):
     if not GOOGLE_API_KEY or GOOGLE_API_KEY == "REPLACE_WITH_YOUR_GOOGLE_AI_API_KEY":
         print("Warning: GOOGLE_API_KEY not configured. Using fallback recommendations.")
@@ -138,7 +130,7 @@ def get_dynamic_ai_recommendations(financial_summary):
     }
 
     try:
-        response = requests.post(api_url, json=payload, timeout=10) # Added a timeout
+        response = requests.post(api_url, json=payload, timeout=10)
         response.raise_for_status()
         result = response.json()
 
@@ -147,13 +139,12 @@ def get_dynamic_ai_recommendations(financial_summary):
         return json.loads(cleaned_response)
 
     except Exception as e:
-        # If any error occurs (API down, timeout, etc.), use the fallback.
+       
         print(f"Live AI call failed: {e}. Using fallback recommendations.")
         return get_fallback_recommendations(financial_summary)
 
-# ==============================================================================
+
 # ACCURATE TAX COMPUTATION ENGINE (FY 2024-25 / AY 2025-26)
-# ==============================================================================
 STANDARD_DEDUCTION = 50000
 LIMIT_80C = 150000
 LIMIT_80D = 25000
@@ -205,9 +196,7 @@ def calculate_final_tax(gross_income, slabs, deductions=None):
 
     return total_tax, taxable_income
 
-# ==============================================================================
-# FLASK API ENDPOINT
-# ==============================================================================
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'statements' not in request.files:
@@ -308,4 +297,5 @@ def upload_file():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
