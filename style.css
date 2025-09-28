@@ -9,10 +9,17 @@ body {
     background: #0f172a;
 }
 
-/* Landing Page Styles */
+/* Landing Page Styles with Background Image */
 #landing-page {
-     background: linear-gradient(135deg, #0f172a 0%, #0c1322 100%);
+    /* FIX: Added a background image with a dark overlay for text readability */
+    background: 
+        linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)),
+        url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80') no-repeat center center;
+    background-size: cover;
+    position: relative;
+    z-index: 1;
 }
+
 
 /* Glassmorphism Card Style */
 .card, .feature-card, #auth-box {
