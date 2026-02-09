@@ -3,17 +3,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // FIREBASE AND API CONFIGURATION
 
     const firebaseConfig = {
-        apiKey: "AIzaSyB0GDEB2gMdM7ILtUdVmOOIIdn1oCiY68I",
-        authDomain: "taxwiseapp-fd1ee.firebaseapp.com",
-        projectId: "taxwiseapp-fd1ee",
-        storageBucket: "taxwiseapp-fd1ee.appspot.com",
-        messagingSenderId: "522348901127",
-        appId: "1:522348901127:web:13a751f669aa38714ccba2",
-        measurementId: "G-HC42XP2H11"
+        apiKey: "",
+        authDomain: "",
+        projectId: "",
+        storageBucket: "",
+        messagingSenderId: "",
+        appId: "",
+        measurementId: ""
     };
 
    
-    const GEMINI_API_KEY = "AIzaSyBkv1dXN3-JALMDtEPiyEp4-tEkQx6-ogQ";
+    const GEMINI_API_KEY = "";
 
    
     firebase.initializeApp(firebaseConfig);
@@ -605,4 +605,5 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 });
+
 
