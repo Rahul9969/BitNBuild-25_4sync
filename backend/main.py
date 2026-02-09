@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app)
 
 
-GOOGLE_API_KEY = "AIzaSyBkv1dXN3-JALMDtEPiyEp4-tEkQx6-ogQ"
+GOOGLE_API_KEY = ""
 
 
 def standardize_column_names(df):
@@ -297,5 +297,6 @@ def upload_file():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
